@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KC-MIP — Kenya Capital Markets Intelligence Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['IBM Plex Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    .tabular { font-variant-numeric: tabular-nums; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(120, 125, 135, 0.35); border-radius: 999px; }
+  </style>
+</head>
+<body class="bg-white text-[#111315] dark:bg-[#0C0D10] dark:text-[#F3F4F6] font-sans antialiased selection:bg-[#FF4D1C] selection:text-white overflow-x-hidden">
+
+  <!-- Solid Black Top Masthead -->
+  <header class="sticky top-0 z-40 bg-[#0B0B0C] text-white border-b border-white/10">
+    <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <button onclick="navigateTo('frontpage')" class="flex items-center gap-2.5 shrink-0 text-left">
+        <span class="w-8 h-8 rounded-lg bg-[#FF4D1C] flex items-center justify-center">
+          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7" />
+          </svg>
+        </span>
+        <div>
+          <span class="font-display font-extrabold text-lg tracking-tight text-white block leading-none">KC-MIP</span>
+          <span class="text-[9px] font-mono uppercase tracking-[0.16em] text-zinc-400 block mt-0.5">Kenya Markets</span>
+        </div>
+      </button>
+
+      <nav id="top-nav-links" class="hidden lg:flex items-center gap-1 text-[13px] font-medium"></nav>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="toggleTheme()" title="Toggle Light/Dark Mode" class="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors">
+          <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+          <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button onclick="openPricingModal()" class="px-4 py-2 rounded-lg bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs tracking-wide transition-colors">
+          Subscribe
+        </button>
+        <button onclick="toggleMobileDrawer()" class="lg:hidden p-2 rounded-lg bg-white/10 text-white" aria-label="Menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-Header Utility Strip -->
+    <div class="bg-[#F5F5F7] dark:bg-[#14161B] text-[#111315] dark:text-zinc-200 border-b border-[#E5E7EB] dark:border-zinc-800">
+      <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between gap-3">
+        <button onclick="toggleFilterBar()" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[#0B0B0C] dark:bg-zinc-800 text-white text-xs font-medium hover:opacity-90 shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h14" />
+          </svg>
+          <span class="hidden sm:inline">Filters</span>
+        </button>
+
+        <div class="flex-1 min-w-0 flex items-center justify-center gap-3 text-center overflow-hidden">
+          <button onclick="openPricingModal()" class="text-xs sm:text-[13px] font-medium hover:text-[#FF4D1C] transition-colors truncate">
+            Daily NSE, CBK &amp; CMA Intelligence Brief — Get morning KES market disclosures
+          </button>
+          <span class="hidden xl:inline-flex items-center gap-2 pl-3 border-l border-zinc-300 dark:border-zinc-700 font-mono text-[11px] text-zinc-600 dark:text-zinc-400 tabular shrink-0">
+            <span>NASI <strong>114.82</strong> <span class="text-emerald-600 dark:text-emerald-400">+0.64%</span></span>
+            <span>·</span>
+            <span>91D T-BILL <strong>12.482%</strong></span>
+            <span>·</span>
+            <span>USD/KES <strong>129.20</strong></span>
+            <span class="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[9px] uppercase">Delayed</span>
+          </span>
+        </div>
+
+        <div class="relative flex items-center shrink-0">
+          <input
+            id="global-search"
+            type="text"
+            placeholder="Search SCOM, CBK, IFB..."
+            oninput="handleSearch(this.value)"
+            class="w-36 sm:w-56 focus:w-64 transition-all duration-200 pl-3 pr-8 py-1.5 rounded-md bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs text-[#111315] dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-[#FF4D1C]"
+          />
+          <svg class="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path stroke-linecap="round" d="m21 21-4.3-4.3"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Expandable Multi-Dimensional Filter Bar -->
+      <div id="multi-filter-drawer" class="hidden border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#111318]">
+        <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">Tier:</span>
+            <select id="filter-tier" onchange="setFilter('filterTier', this.value)" class="px-2.5 py-1.5 rounded-md bg-[#F5F5F7] dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium focus:outline-none">
+              <option value="all">All Tiers (1–4)</option>
+              <option value="1">Tier 1 · Official Regulators / NSE</option>
+              <option value="2">Tier 2 · Financial Publishers</option>
+              <option value="3">Tier 3 · Specialist &amp; PE/VC</option>
+            </select>
+
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 ml-2">Rights:</span>
+            <select id="filter-rights" onchange="setFilter('filterRights', this.value)" class="px-2.5 py-1.5 rounded-md bg-[#F5F5F7] dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium focus:outline-none">
+              <option value="all">All Rights</option>
+              <option value="official_disclosure">Official Disclosure</option>
+              <option value="licensed_full_text">Licensed Full Text</option>
+              <option value="summary_permitted">Summary Permitted</option>
+              <option value="metadata_only">Metadata Only</option>
+            </select>
+
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 ml-2">Issuer:</span>
+            <select id="filter-ticker" onchange="setFilter('filterTicker', this.value)" class="px-2.5 py-1.5 rounded-md bg-[#F5F5F7] dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium focus:outline-none">
+              <option value="all">All NSE Issuers</option>
+              <option value="SCOM">SCOM · Safaricom PLC</option>
+              <option value="KCB">KCB · KCB Group PLC</option>
+              <option value="EQTY">EQTY · Equity Group</option>
+              <option value="COOP">COOP · Co-operative Bank</option>
+              <option value="EABL">EABL · East African Breweries</option>
+              <option value="KEGN">KEGN · KenGen PLC</option>
+              <option value="CTUM">CTUM · Centum Investment</option>
+            </select>
+          </div>
+
+          <button onclick="resetFilters()" class="px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#FF4D1C] hover:bg-[#FF4D1C]/10 transition-colors">
+            Reset All
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div id="mobile-drawer" class="fixed inset-0 z-50 hidden lg:hidden">
+    <div onclick="toggleMobileDrawer()" class="fixed inset-0 bg-black/60"></div>
+    <div class="relative w-72 max-w-[82vw] h-full bg-[#0B0B0C] text-white p-5 flex flex-col justify-between z-10">
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-white/10">
+          <span class="font-display font-extrabold text-base">KC-MIP</span>
+          <button onclick="toggleMobileDrawer()" class="p-1.5 rounded-md bg-white/10 text-xs">✕</button>
+        </div>
+        <nav id="mobile-nav-links" class="mt-4 flex flex-col gap-1"></nav>
+      </div>
+      <button onclick="toggleMobileDrawer(); openPricingModal();" class="w-full py-2.5 rounded-lg bg-[#FF4D1C] text-white font-display font-bold text-xs">
+        Subscribe · Intelligence Pro
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <main id="app-workspace" class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-9"></main>
+
+  <!-- Footer -->
+  <footer class="border-t border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-[#111318] mt-14">
+    <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+      <div>
+        <div class="font-display font-bold text-sm text-[#111315] dark:text-white">KC-MIP · Kenya Capital Markets Intelligence Platform</div>
+        <p class="mt-0.5">Centralised Kenyan capital-markets news, event clusters, and research utilities (KES). Not a broker or investment adviser.</p>
+      </div>
+      <div class="font-mono text-[11px]">30 / 200+ SOURCES · RIGHTS-AWARE · DPA 2019</div>
+    </div>
+  </footer>
+
+  <!-- Slide-Over Article & Issuer Dossier -->
+  <div id="dossier-drawer" class="fixed inset-0 z-50 hidden">
+    <div onclick="closeDossier()" class="fixed inset-0 bg-black/60"></div>
+    <div class="fixed inset-y-0 right-0 w-full max-w-2xl bg-white dark:bg-[#12141A] border-l border-[#E5E7EB] dark:border-zinc-800 shadow-2xl flex flex-col z-10 overflow-hidden">
+      <div id="dossier-body" class="flex-1 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- Subscription Modal -->
+  <div id="pricing-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closePricingModal()" class="fixed inset-0 bg-black/65"></div>
+    <div class="relative w-full max-w-4xl bg-white dark:bg-[#12141A] rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 shadow-2xl overflow-hidden z-10 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 sm:p-7 border-b border-[#E5E7EB] dark:border-zinc-800 flex items-start justify-between gap-4 bg-[#0B0B0C] text-white">
+        <div>
+          <span class="inline-block px-2.5 py-0.5 rounded-full bg-[#FF4D1C] text-white font-mono text-[10px] uppercase tracking-wider font-semibold">KC-MIP Plans · KES</span>
+          <h2 class="font-display font-extrabold text-2xl mt-2 tracking-tight">Kenyan Capital Markets Intelligence Access</h2>
+          <p class="text-zinc-300 text-xs sm:text-sm mt-1">Core public market news remains free; upgrade for event clustering, historical search, alerts, and API feeds.</p>
+        </div>
+        <button onclick="closePricingModal()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-mono">ESC</button>
+      </div>
+      <div class="p-6 sm:p-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">Public</div>
+            <div class="font-display font-extrabold text-2xl mt-2">Free</div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• Chronological news feed</li>
+              <li>• All 6 market divisions</li>
+              <li>• Basic AI summaries</li>
+              <li>• Source attribution links</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Active on Public Tier');" class="mt-6 w-full py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 font-semibold text-xs">Current Plan</button>
+        </div>
+        <div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Investor</div>
+            <div class="font-display font-extrabold text-2xl mt-2 tabular">KSh 499 <span class="text-xs font-normal text-zinc-500">/mo</span></div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• Personalised watchlists</li>
+              <li>• Custom company alerts</li>
+              <li>• Offline reading library</li>
+              <li>• XIRR &amp; WHT calculators</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Investor Tier trial enabled');" class="mt-6 w-full py-2 rounded-lg bg-[#0B0B0C] dark:bg-zinc-800 text-white font-semibold text-xs">Select Investor</button>
+        </div>
+        <div class="p-5 rounded-xl border-2 border-[#FF4D1C] bg-[#FF4D1C]/[0.03] flex flex-col justify-between relative">
+          <span class="absolute -top-2.5 right-4 px-2 py-0.5 rounded bg-[#FF4D1C] text-white font-mono text-[9px] uppercase font-bold">Popular</span>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Professional</div>
+            <div class="font-display font-extrabold text-2xl mt-2 tabular">KSh 1,999 <span class="text-xs font-normal text-zinc-500">/mo</span></div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• Cross-source event clusters</li>
+              <li>• Issuer intelligence profiles</li>
+              <li>• Historical &amp; semantic search</li>
+              <li>• CSV / JSON data exports</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Professional workspace active');" class="mt-6 w-full py-2 rounded-lg bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Start Pro Trial</button>
+        </div>
+        <div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">Institutional</div>
+            <div class="font-display font-extrabold text-2xl mt-2">Custom</div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• REST Intelligence API</li>
+              <li>• Licensed full-text feeds</li>
+              <li>• Team seats &amp; RBAC</li>
+              <li>• SLA &amp; audit trail logs</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Institutional desk request logged');" class="mt-6 w-full py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 font-semibold text-xs">Contact Desk</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 pointer-events-none opacity-0 transition-opacity duration-200">
+    <div class="px-4 py-2.5 rounded-xl bg-[#0B0B0C] text-white text-xs font-medium shadow-xl border border-white/10 flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full bg-[#FF4D1C]"></span>
+      <span id="toast-msg">Ready</span>
+    </div>
+  </div>
+
+  <script>
+    // SVG fallback data URI so every image renders cleanly even offline
+    function makeFallbackSvg(title, tag) {
+      const safeTitle = (title || 'KC-MIP Intelligence').slice(0, 34).replace(/[&<>'"]/g, '');
+      const safeTag = (tag || 'KENYA CAPITAL MARKETS').slice(0, 26).replace(/[&<>'"]/g, '');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#111318"/><stop offset="100%" stop-color="#1F242D"/></linearGradient></defs>
+        <rect width="800" height="500" fill="url(#g)"/>
+        <rect x="48" y="48" width="12" height="404" fill="#FF4D1C"/>
+        <text x="84" y="195" fill="#FF4D1C" font-family="sans-serif" font-size="18" font-weight="700" letter-spacing="2">${safeTag}</text>
+        <text x="84" y="255" fill="#FFFFFF" font-family="sans-serif" font-size="32" font-weight="800">${safeTitle}</text>
+        <text x="84" y="305" fill="#9CA3AF" font-family="monospace" font-size="16">KC-MIP · KENYA CAPITAL MARKETS INTELLIGENCE</text>
+      </svg>`;
+      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+
+    const CATEGORIES = [
+      { id: 'all', label: 'All' },
+      { id: 'equity_markets', label: 'Equities' },
+      { id: 'corporate_developments', label: 'Corporate' },
+      { id: 'fixed_income', label: 'Fixed Income' },
+      { id: 'investment_products', label: 'Funds & REITs' },
+      { id: 'regulation_policy', label: 'Regulation' },
+      { id: 'private_markets', label: 'Private Markets' }
+    ];
+
+    const ISSUERS = [
+      { ticker: 'SCOM', name: 'Safaricom PLC', sector: 'Telecommunications', isin: 'KE1000001402', refPrice: '16.45', change: '+1.23%', mktCap: 'KES 659.1B', yield: '7.30%', overview: 'Listed telecommunications, M-PESA mobile money, and enterprise connectivity operator on the Nairobi Securities Exchange.', actions: [{ event: 'Interim Dividend', terms: 'KES 0.65 / share', announced: '20 Nov 2026', record: '18 Dec 2026', pay: '31 Jan 2027' }] },
+      { ticker: 'KCB', name: 'KCB Group PLC', sector: 'Banking', isin: 'KE0000000315', refPrice: '38.90', change: '+0.91%', mktCap: 'KES 125.0B', yield: '7.71%', overview: 'East African banking group operating across Kenya, Uganda, Tanzania, Rwanda, Burundi, South Sudan, and DRC.', actions: [{ event: '9M 2026 Results', terms: 'PAT KES 45.8B (+18.2%)', announced: '19 Nov 2026', record: '—', pay: '—' }] },
+      { ticker: 'EQTY', name: 'Equity Group Holdings PLC', sector: 'Banking', isin: 'KE0000000554', refPrice: '46.25', change: '-0.43%', mktCap: 'KES 174.5B', yield: '8.65%', overview: 'Regional banking, insurance, and investment banking group with operations across East and Central Africa.', actions: [{ event: '9M 2026 Results', terms: 'Assets KES 1.74T (+9.8%)', announced: '15 Nov 2026', record: '—', pay: '—' }] },
+      { ticker: 'COOP', name: 'Co-operative Bank of Kenya PLC', sector: 'Banking', isin: 'KE1000001568', refPrice: '14.10', change: '+0.71%', mktCap: 'KES 82.7B', yield: '10.64%', overview: 'Commercial bank serving retail, SME, corporate, and SACCO clients across Kenya and South Sudan.', actions: [{ event: '9M 2026 Results', terms: 'PBT KES 26.9B (+11.5%)', announced: '17 Nov 2026', record: '—', pay: '—' }] },
+      { ticker: 'EABL', name: 'East African Breweries PLC', sector: 'Manufacturing & Allied', isin: 'KE0000000216', refPrice: '178.00', change: '-0.56%', mktCap: 'KES 140.8B', yield: '3.93%', overview: 'Regional branded beverage alcohol producer operating across Kenya, Uganda, and Tanzania.', actions: [{ event: 'Final Dividend', terms: 'KES 5.50 / share', announced: '28 Oct 2026', record: '12 Nov 2026', pay: '10 Dec 2026' }] },
+      { ticker: 'KEGN', name: 'KenGen PLC', sector: 'Energy & Petroleum', isin: 'KE0000000547', refPrice: '3.82', change: '+2.41%', mktCap: 'KES 25.2B', yield: '17.02%', overview: 'Kenya’s leading electricity generator across geothermal, hydro, wind, and thermal plants.', actions: [{ event: 'FY26 Final Dividend', terms: 'KES 0.65 / share', announced: '05 Nov 2026', record: '28 Nov 2026', pay: '16 Jan 2027' }] },
+      { ticker: 'CTUM', name: 'Centum Investment Company PLC', sector: 'Investment', isin: 'KE0000000265', refPrice: '9.40', change: '+1.08%', mktCap: 'KES 6.3B', yield: '6.38%', overview: 'Listed East African investment company focused on private equity, real estate, and marketable securities.', actions: [{ event: 'Debt Redemption', terms: 'KES 1.8B Note Repaid', announced: '09 Nov 2026', record: '—', pay: '—' }] }
+    ];
+
+    const INSTITUTIONS = [
+      { code: 'CMA', name: 'Capital Markets Authority', role: 'Capital Markets Regulator', mandate: 'Licenses and supervises exchanges, depositories, collective investment schemes, listed companies, and market intermediaries under Cap. 485A.', website: 'https://www.cma.or.ke', notices: ['CMA/MRT/014/2026 — Daily Mark-to-Market Valuation for CIS Funds', 'CMA/ISD/009/2026 — Takeover Offer Disclosure Rules'] },
+      { code: 'CBK', name: 'Central Bank of Kenya', role: 'Monetary Authority & Debt Agent', mandate: 'Conducts monetary policy, runs DhowCSD Treasury bill and bond auctions, supervises banks, and publishes official FX rates.', website: 'https://www.centralbank.go.ke', notices: ['Issue 2604/091 — 91-Day T-Bill Clears at 12.482%', 'IFB1/2026/015 — Re-opened 15-Yr Tax-Exempt Infrastructure Bond'] },
+      { code: 'NSE', name: 'Nairobi Securities Exchange PLC', role: 'Securities Exchange', mandate: 'Operates Kenya’s equities, fixed income (FISMS), and derivatives (NEXT) markets plus licensed commercial market data.', website: 'https://www.nse.co.ke', notices: ['NSE/MKT/2026/112 — Safaricom Interim Dividend Timetable', 'NSE/DATA/2026/04 — Commercial Market Data Licensing'] },
+      { code: 'CDSC', name: 'Central Depository & Settlement Corp.', role: 'Clearing & Settlement Depository', mandate: 'Handles securities clearing, settlement, depository accounts, and direct mobile/bank dividend disbursement.', website: 'https://cdsckenya.com', notices: ['CDSC/OPS/088/2026 — Direct Mobile & Bank Dividend Settlement'] },
+      { code: 'TREASURY', name: 'The National Treasury', role: 'Fiscal & Public Debt Authority', mandate: 'Oversees fiscal policy, public debt management, and capital markets tax policy in Kenya.', website: 'https://www.treasury.go.ke', notices: ['TNT/PDMO/Q2-26 — FY 2026/27 Domestic Borrowing Schedule'] }
+    ];
+
+    const SOURCES = [
+      { id: 'src-nse', name: 'Nairobi Securities Exchange', class: 'Exchange', tier: 1, rights: 'official_disclosure', method: 'API / RSS', poll: '2 min', lastSuccess: '1 min ago', status: 'Operational', url: 'https://www.nse.co.ke' },
+      { id: 'src-cbk', name: 'Central Bank of Kenya', class: 'Regulator', tier: 1, rights: 'official_disclosure', method: 'API / Sitemap', poll: '5 min', lastSuccess: '2 min ago', status: 'Operational', url: 'https://www.centralbank.go.ke' },
+      { id: 'src-cma', name: 'Capital Markets Authority', class: 'Regulator', tier: 1, rights: 'official_disclosure', method: 'HTML / Press', poll: '5 min', lastSuccess: '2 min ago', status: 'Operational', url: 'https://www.cma.or.ke' },
+      { id: 'src-cdsc', name: 'CDSC Kenya', class: 'Depository', tier: 1, rights: 'official_disclosure', method: 'HTML / Press', poll: '5 min', lastSuccess: '4 min ago', status: 'Operational', url: 'https://cdsckenya.com' },
+      { id: 'src-bd', name: 'Business Daily Africa', class: 'Financial Publisher', tier: 2, rights: 'summary_permitted', method: 'RSS / Sitemap', poll: '5 min', lastSuccess: '1 min ago', status: 'Operational', url: 'https://www.businessdailyafrica.com' },
+      { id: 'src-mystocks', name: 'MyStocks Africa', class: 'Financial Publisher', tier: 2, rights: 'licensed_full_text', method: 'API', poll: '5 min', lastSuccess: '2 min ago', status: 'Operational', url: 'https://www.mystocks.co.ke' },
+      { id: 'src-money254', name: 'Money254', class: 'Financial Publisher', tier: 2, rights: 'summary_permitted', method: 'RSS', poll: '10 min', lastSuccess: '5 min ago', status: 'Operational', url: 'https://www.money254.co.ke' },
+      { id: 'src-soko', name: 'Soko Directory', class: 'Financial Publisher', tier: 3, rights: 'summary_permitted', method: 'RSS', poll: '10 min', lastSuccess: '6 min ago', status: 'Operational', url: 'https://sokodirectory.com' },
+      { id: 'src-standard', name: 'The Standard (Business)', class: 'Business Media', tier: 2, rights: 'metadata_only', method: 'RSS', poll: '10 min', lastSuccess: '4 min ago', status: 'Operational', url: 'https://www.standardmedia.co.ke' },
+      { id: 'src-apen', name: 'Africa Private Equity News', class: 'Specialist Publication', tier: 3, rights: 'summary_permitted', method: 'RSS', poll: '30 min', lastSuccess: '14 min ago', status: 'Operational', url: 'https://www.africaprivateequitynews.com' }
+    ];
+
+    let ARTICLES = [
+      {
+        id: 'ART-2026-0891',
+        clusterId: 'CLU-SCOM-H1',
+        title: 'Safaricom Declares KSh 0.65 Interim Dividend as H1 Service Revenue Climbs 12.4%',
+        sourceName: 'Nairobi Securities Exchange',
+        authorRole: 'Official Exchange Filing · Tier 1',
+        tier: 1,
+        rights: 'official_disclosure',
+        category: 'corporate_developments',
+        categoryLabel: 'Corporate',
+        relativeTime: '12 minutes ago',
+        readTime: '3 min read',
+        publishedAt: '2026-11-20T18:29:00+03:00',
+        collectedAt: '2026-11-20T18:30:14+03:00',
+        importance: 98,
+        confidence: 0.99,
+        tickers: ['SCOM'],
+        institutions: ['NSE', 'CDSC'],
+        imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=80',
+        imageCaption: 'Enterprise connectivity and mobile financial infrastructure supporting M-PESA and data growth.',
+        excerpt: 'Board approves a KES 26.04 billion gross interim distribution with book closure on 18 December 2026 and payment on 31 January 2027.',
+        keyDevelopments: [
+          'Interim dividend of KES 0.65 per share (~KES 26.04B gross payout).',
+          'Book closure on 18 December 2026; payment date 31 January 2027.',
+          'Kenyan M-PESA and mobile data growth lifted H1 service revenue 12.4%.'
+        ],
+        whyItMatters: 'Safaricom’s interim dividend anchors NSE cash-flow expectations and retail/institutional positioning into Q1 2027.',
+        extractedPayload: {
+          event_type: 'dividend_declaration',
+          company: 'Safaricom PLC',
+          ticker: 'SCOM',
+          dividend_per_share: 0.65,
+          currency: 'KES',
+          announcement_date: '2026-11-20',
+          record_date: '2026-12-18',
+          payment_date: '2027-01-31'
+        },
+        fullText: 'NAIROBI, 20 November 2026 — The Board of Directors of Safaricom PLC announces unaudited financial results for the six months ended 30 September 2026 and an interim dividend of KSh 0.65 per ordinary share, payable on or about 31 January 2027 to shareholders on record at close of business on 18 December 2026.',
+        sourceUrl: 'https://www.nse.co.ke/'
+      },
+      {
+        id: 'ART-2026-0890',
+        clusterId: 'CLU-CBK-TBILL',
+        title: 'CBK 91-Day Treasury Bill Yield Eases 14 bps to 12.482% Amid 160% Subscription',
+        sourceName: 'Central Bank of Kenya',
+        authorRole: 'DhowCSD Auction Notice · Tier 1',
+        tier: 1,
+        rights: 'official_disclosure',
+        category: 'fixed_income',
+        categoryLabel: 'Fixed Income',
+        relativeTime: '48 minutes ago',
+        readTime: '3 min read',
+        publishedAt: '2026-11-20T17:53:00+03:00',
+        collectedAt: '2026-11-20T17:54:20+03:00',
+        importance: 94,
+        confidence: 0.98,
+        tickers: [],
+        institutions: ['CBK', 'TREASURY'],
+        imageUrl: 'https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?auto=format&fit=crop&w=900&q=80',
+        imageCaption: 'Central Bank of Kenya domestic sovereign debt auction results via DhowCSD.',
+        excerpt: 'Bids totalled KES 38.41 billion against KES 24.00 billion offered, lowering accepted yields across 91-day, 182-day, and 364-day tenors.',
+        keyDevelopments: [
+          '91-Day T-Bill cleared at 12.482% (-14 bps); 182-Day at 13.105%; 364-Day at 13.890%.',
+          'Accepted bids totalled KES 31.21 billion out of KES 38.41 billion tendered.'
+        ],
+        whyItMatters: 'Easing short-term sovereign yields pressure Money Market Fund returns and influence fixed-income vs. equity allocation.',
+        extractedPayload: {
+          event_type: 'treasury_bill_auction',
+          issuer: 'Central Bank of Kenya',
+          tenor_91d_yield: 12.482,
+          tenor_182d_yield: 13.105,
+          tenor_364d_yield: 13.890,
+          currency: 'KES',
+          announcement_date: '2026-11-20',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: 'CENTRAL BANK OF KENYA — DhowCSD Treasury Bill Auction Results (Issue Nos. 2604/091, 2577/182, 2530/364). Amount Offered: KES 24,000.00M. Bids Received: KES 38,412.50M. Accepted: KES 31,205.00M.',
+        sourceUrl: 'https://www.centralbank.go.ke/'
+      },
+      {
+        id: 'ART-2026-0889',
+        clusterId: 'CLU-CMA-MMF',
+        title: 'CMA Mandates Daily Mark-to-Market Valuation for All Kenyan Unit Trusts',
+        sourceName: 'Capital Markets Authority',
+        authorRole: 'Regulatory Circular · Tier 1',
+        tier: 1,
+        rights: 'official_disclosure',
+        category: 'regulation_policy',
+        categoryLabel: 'Regulation',
+        relativeTime: '2 hours ago',
+        readTime: '4 min read',
+        publishedAt: '2026-11-20T16:30:00+03:00',
+        collectedAt: '2026-11-20T16:32:10+03:00',
+        importance: 95,
+        confidence: 0.99,
+        tickers: [],
+        institutions: ['CMA'],
+        imageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=900&q=80',
+        imageCaption: 'CMA regulatory circular governing collective investment scheme valuation and disclosure.',
+        excerpt: 'Circular CMA/MRT/014/2026 requires CIS managers to publish daily mark-to-market valuations for debt holdings over 91 days.',
+        keyDevelopments: [
+          'Applies to debt instruments exceeding 91 days to maturity across licensed CIS funds.',
+          'Requires monthly top-5 counterparty and Weighted Average Maturity disclosures.',
+          'Full compliance required by 31 March 2027.'
+        ],
+        whyItMatters: 'Improves transparency across Kenya’s >KES 310 billion unit trust industry by aligning reported yields with market pricing.',
+        extractedPayload: {
+          event_type: 'regulatory_circular',
+          regulator: 'Capital Markets Authority',
+          circular_ref: 'CMA/MRT/014/2026',
+          announcement_date: '2026-11-20',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: 'CIRCULAR NO. CMA/MRT/014/2026 — Licensed Collective Investment Scheme managers shall apply daily mark-to-market valuation for fixed-income instruments with remaining maturity over 91 days from 31 March 2027.',
+        sourceUrl: 'https://www.cma.or.ke/'
+      },
+      {
+        id: 'ART-2026-0887',
+        clusterId: 'CLU-KCB-Q3',
+        title: 'KCB Group Q3 Net Profit Jumps 18.2% to KSh 45.8B on Regional Banking Gains',
+        sourceName: 'MyStocks Africa',
+        authorRole: 'Licensed Partner Feed · Tier 2',
+        tier: 2,
+        rights: 'licensed_full_text',
+        category: 'corporate_developments',
+        categoryLabel: 'Corporate',
+        relativeTime: '3 hours ago',
+        readTime: '3 min read',
+        publishedAt: '2026-11-20T15:15:00+03:00',
+        collectedAt: '2026-11-20T15:16:40+03:00',
+        importance: 91,
+        confidence: 0.97,
+        tickers: ['KCB'],
+        institutions: ['NSE', 'CBK'],
+        imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80',
+        imageCaption: 'Nairobi financial district towers serving East African corporate and retail banking.',
+        excerpt: 'Nine-month profit after tax reached KES 45.8 billion as regional subsidiaries generated 34.6% of Group pre-tax earnings.',
+        keyDevelopments: [
+          '9M 2026 Profit After Tax up 18.2% YoY to KES 45.8 billion.',
+          'Regional subsidiaries contributed 34.6% of pre-tax profit; NPL ratio eased 110 bps to 16.8%.'
+        ],
+        whyItMatters: 'Demonstrates earnings momentum among Tier-1 Kenyan banking counters.',
+        extractedPayload: {
+          event_type: 'financial_results',
+          company: 'KCB Group PLC',
+          ticker: 'KCB',
+          profit_after_tax_kes_b: 45.8,
+          currency: 'KES',
+          announcement_date: '2026-11-19',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: 'KCB Group PLC reported 9M 2026 net profit of KSh 45.8 billion (+18.2% YoY) as operating income rose 14.1% and regional subsidiaries expanded their earnings share.',
+        sourceUrl: 'https://www.mystocks.co.ke/'
+      },
+      {
+        id: 'ART-2026-0888',
+        clusterId: 'CLU-SCOM-H1',
+        title: 'Institutional Desks Accumulate Safaricom Ahead of KSh 26bn Interim Dividend Closure',
+        sourceName: 'Business Daily Africa',
+        authorRole: 'Financial Publisher · Tier 2',
+        tier: 2,
+        rights: 'summary_permitted',
+        category: 'equity_markets',
+        categoryLabel: 'Equities',
+        relativeTime: '4 hours ago',
+        readTime: '3 min read',
+        publishedAt: '2026-11-20T14:20:00+03:00',
+        collectedAt: '2026-11-20T14:23:15+03:00',
+        importance: 86,
+        confidence: 0.94,
+        tickers: ['SCOM'],
+        institutions: ['NSE'],
+        imageUrl: 'https://images.unsplash.com/photo-1596005554384-d293674c91d7?auto=format&fit=crop&w=1200&q=80',
+        imageCaption: 'Nairobi commercial skyline during afternoon NSE equity trading.',
+        excerpt: 'Safaricom drove 58% of afternoon NSE equity turnover as institutional buyers positioned ahead of book closure.',
+        keyDevelopments: [
+          'Accounted for 58% of afternoon NSE equity turnover.',
+          'Linked to primary event cluster CLU-SCOM-H1.'
+        ],
+        whyItMatters: 'Shows market-desk reaction to Safaricom’s interim dividend declaration.',
+        extractedPayload: {
+          event_type: 'market_commentary',
+          company: 'Safaricom PLC',
+          ticker: 'SCOM',
+          announcement_date: '2026-11-20',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: null,
+        sourceUrl: 'https://www.businessdailyafrica.com/'
+      },
+      {
+        id: 'ART-2026-0886',
+        clusterId: 'CLU-IFB-BOND',
+        title: 'Institutional Demand Builds for Re-Opened 15-Year Tax-Exempt Infrastructure Bond',
+        sourceName: 'The Standard (Business)',
+        authorRole: 'Business Media · Tier 2',
+        tier: 2,
+        rights: 'metadata_only',
+        category: 'fixed_income',
+        categoryLabel: 'Fixed Income',
+        relativeTime: '5 hours ago',
+        readTime: '2 min read',
+        publishedAt: '2026-11-20T13:05:00+03:00',
+        collectedAt: '2026-11-20T13:08:50+03:00',
+        importance: 85,
+        confidence: 0.93,
+        tickers: [],
+        institutions: ['CBK', 'NSE'],
+        imageUrl: 'https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=1200&q=80',
+        imageCaption: 'Infrastructure financing in Kenya linked to tax-exempt Treasury infrastructure bonds.',
+        excerpt: 'Metadata-only record: Secondary coverage on institutional appetite for CBK’s tax-exempt infrastructure bond issue.',
+        keyDevelopments: [
+          'Metadata-only under source copyright terms; full article on publisher site.',
+          'Associated with CBK fixed-income issuance IFB1/2026/015.'
+        ],
+        whyItMatters: 'Tax-exempt IFBs remain a core fixed-income allocation for Kenyan banks, insurers, and high-net-worth investors.',
+        extractedPayload: {
+          event_type: 'bond_coverage',
+          instrument: 'IFB1/2026/015',
+          announcement_date: '2026-11-20',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: null,
+        sourceUrl: 'https://www.standardmedia.co.ke/business'
+      },
+      {
+        id: 'ART-2026-0884',
+        clusterId: 'CLU-SCOM-H1',
+        title: 'After-Tax Income Comparison: Safaricom Dividend (5% WHT) vs. Kenyan Money Market Funds',
+        sourceName: 'Money254',
+        authorRole: 'Financial Publisher · Tier 2',
+        tier: 2,
+        rights: 'summary_permitted',
+        category: 'investment_products',
+        categoryLabel: 'Funds & REITs',
+        relativeTime: '6 hours ago',
+        readTime: '4 min read',
+        publishedAt: '2026-11-20T12:10:00+03:00',
+        collectedAt: '2026-11-20T12:13:00+03:00',
+        importance: 79,
+        confidence: 0.95,
+        tickers: ['SCOM'],
+        institutions: [],
+        imageUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=900&q=80',
+        imageCaption: 'Comparing after-tax yields across Kenyan equities, money market funds, and bonds.',
+        excerpt: 'Resident individual investors face a 5% final withholding tax on NSE dividends versus 15% on Money Market Fund interest.',
+        keyDevelopments: [
+          'Resident NSE dividend WHT is 5% vs. 15% WHT on standard Money Market Fund interest.',
+          'Compares net yields as 91-day T-bill rates ease to 12.482%.'
+        ],
+        whyItMatters: 'Helps retail investors evaluate net cash returns across Kenyan asset classes.',
+        extractedPayload: {
+          event_type: 'tax_comparison',
+          dividend_wht_pct: 5.0,
+          mmf_wht_pct: 15.0,
+          announcement_date: '2026-11-20',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: null,
+        sourceUrl: 'https://www.money254.co.ke/'
+      },
+      {
+        id: 'ART-2026-0885',
+        clusterId: 'CLU-PE-NAIROBI',
+        title: 'Nairobi Climate & Fintech Growth Fund Reaches $85M First Close with Kenyan Pension Backing',
+        sourceName: 'Africa Private Equity News',
+        authorRole: 'Specialist PE/VC Feed · Tier 3',
+        tier: 3,
+        rights: 'summary_permitted',
+        category: 'private_markets',
+        categoryLabel: 'Private Markets',
+        relativeTime: '7 hours ago',
+        readTime: '3 min read',
+        publishedAt: '2026-11-20T11:05:00+03:00',
+        collectedAt: '2026-11-20T11:18:14+03:00',
+        importance: 81,
+        confidence: 0.92,
+        tickers: ['CTUM'],
+        institutions: ['CMA'],
+        imageUrl: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=900&q=80',
+        imageCaption: 'Clean energy and regional growth investments backed by Kenyan institutional capital.',
+        excerpt: 'Kenyan pension schemes anchored 28% (~KES 3.07 billion equivalent) of the $85M first close targeting East African growth deals.',
+        keyDevelopments: [
+          'First close at USD 85M (~KES 10.98B at USD/KES 129.20).',
+          'Kenyan pension schemes accounted for 28% of commitments.'
+        ],
+        whyItMatters: 'Shows domestic pension capital participating in East African private-market deal flow.',
+        extractedPayload: {
+          event_type: 'pe_fundraising',
+          amount_usd_m: 85.0,
+          currency: 'USD',
+          announcement_date: '2026-11-20',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: null,
+        sourceUrl: 'https://www.africaprivateequitynews.com/'
+      },
+      {
+        id: 'ART-2026-0883',
+        clusterId: 'CLU-EQTY-Q3',
+        title: 'Equity Group Total Assets Reach KSh 1.74 Trillion as Regional Subsidiaries Drive Growth',
+        sourceName: 'Soko Directory',
+        authorRole: 'Financial Publisher · Tier 3',
+        tier: 3,
+        rights: 'summary_permitted',
+        category: 'equity_markets',
+        categoryLabel: 'Equities',
+        relativeTime: '8 hours ago',
+        readTime: '3 min read',
+        publishedAt: '2026-11-20T10:15:00+03:00',
+        collectedAt: '2026-11-20T10:21:05+03:00',
+        importance: 84,
+        confidence: 0.94,
+        tickers: ['EQTY'],
+        institutions: ['NSE', 'CBK'],
+        imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=900&q=80',
+        imageCaption: 'East African banking balance sheet and cross-border lending growth.',
+        excerpt: 'Consolidated assets rose 9.8% YoY to KES 1.74 trillion, with regional subsidiaries accounting for 47% of total assets.',
+        keyDevelopments: [
+          'Total group assets reached KES 1.74 trillion (+9.8% YoY).',
+          'Regional subsidiaries held 47% of group assets.'
+        ],
+        whyItMatters: 'Highlights cross-border diversification across East and Central Africa.',
+        extractedPayload: {
+          event_type: 'financial_results',
+          company: 'Equity Group Holdings PLC',
+          ticker: 'EQTY',
+          total_assets_kes_t: 1.74,
+          currency: 'KES',
+          announcement_date: '2026-11-15',
+          record_date: null,
+          payment_date: null
+        },
+        fullText: null,
+        sourceUrl: 'https://sokodirectory.com/'
+      }
+    ];
+
+    const CLUSTERS = {
+      'CLU-SCOM-H1': {
+        title: 'Safaricom PLC H1 FY27 Results & KSh 0.65 Interim Dividend',
+        synthesis: 'Primary NSE filing confirms a KSh 0.65/share interim dividend (book closure 18 Dec 2026; payment 31 Jan 2027). Secondary coverage highlights institutional turnover and after-tax retail yield comparisons.',
+        articleIds: ['ART-2026-0891', 'ART-2026-0888', 'ART-2026-0884']
+      },
+      'CLU-CBK-TBILL': {
+        title: 'CBK Treasury Bill Auction Issue 2604/091',
+        synthesis: '160% subscription pushed the 91-day T-bill yield down 14 bps to 12.482%, with KES 31.21B accepted.',
+        articleIds: ['ART-2026-0890']
+      },
+      'CLU-CMA-MMF': {
+        title: 'CMA Daily Mark-to-Market Valuation Directive for CIS Funds',
+        synthesis: 'Requires daily mark-to-market valuation for debt holdings >91 days by 31 March 2027.',
+        articleIds: ['ART-2026-0889']
+      }
+    };
+
+    const STORAGE_KEY = 'kcmip_prototype_v3';
+    let state = {
+      activePage: 'frontpage',
+      activeCategory: 'all',
+      filterTier: 'all',
+      filterRights: 'all',
+      filterTicker: 'all',
+      sortOrder: 'chronological',
+      searchQuery: '',
+      watchlist: ['SCOM', 'KCB', 'EQTY', 'CMA', 'CBK'],
+      savedIds: ['ART-2026-0891', 'ART-2026-0889'],
+      alerts: [
+        { id: 'AL-101', target: 'SCOM', condition: 'Interim/Final Dividend or Earnings Release', channel: 'Instant Push + Email', enabled: true },
+        { id: 'AL-102', target: 'CBK / CMA', condition: 'T-Bill/Bond Auctions & Regulatory Circulars', channel: 'Instant Push', enabled: true }
+      ],
+      cashFlows: [
+        { date: '2025-01-15', amount: -500000, note: 'Initial NSE Equity & IFB Allocation (KES)' },
+        { date: '2025-08-31', amount: 42500, note: 'Dividend / Coupon Inflow' },
+        { date: '2026-02-28', amount: 48000, note: 'Dividend / Coupon Inflow' },
+        { date: '2026-11-20', amount: 535000, note: 'Current Valuation / Proceeds' }
+      ]
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) state = { ...state, ...JSON.parse(raw) };
+      } catch (e) {}
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          watchlist: state.watchlist,
+          savedIds: state.savedIds,
+          alerts: state.alerts,
+          cashFlows: state.cashFlows
+        }));
+      } catch (e) {}
+    }
+
+    const NAV_PAGES = [
+      { id: 'frontpage', label: 'All News' },
+      { id: 'markets', label: 'Markets & Actions' },
+      { id: 'companies', label: 'Companies' },
+      { id: 'institutions', label: 'Institutions' },
+      { id: 'tools', label: 'Research & Tools' },
+      { id: 'saved', label: 'Saved & Alerts' },
+      { id: 'sources', label: 'Sources' }
+    ];
+
+    function renderTopNav() {
+      document.getElementById('top-nav-links').innerHTML = NAV_PAGES.map(p => {
+        const active = state.activePage === p.id;
+        return `<button onclick="navigateTo('${p.id}')" class="px-3 py-1.5 rounded-lg transition-colors ${active ? 'text-white bg-white/15 font-semibold' : 'text-zinc-300 hover:text-white hover:bg-white/5'}">${p.label}${p.id === 'saved' ? ` <span class="ml-1 px-1.5 py-0.2 rounded-full bg-[#FF4D1C] text-white text-[10px] font-mono">${state.savedIds.length}</span>` : ''}</button>`;
+      }).join('');
+
+      document.getElementById('mobile-nav-links').innerHTML = NAV_PAGES.map(p => {
+        const active = state.activePage === p.id;
+        return `<button onclick="navigateTo('${p.id}'); toggleMobileDrawer();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium ${active ? 'bg-[#FF4D1C] text-white font-bold' : 'text-zinc-300 hover:bg-white/10'}">${p.label}</button>`;
+      }).join('');
+    }
+
+    function hasActiveFilters() {
+      return state.activeCategory !== 'all' || state.filterTier !== 'all' || state.filterRights !== 'all' || state.filterTicker !== 'all' || state.searchQuery.trim() !== '';
+    }
+
+    function getFilteredArticles() {
+      let list = [...ARTICLES];
+      if (state.activeCategory !== 'all') list = list.filter(a => a.category === state.activeCategory);
+      if (state.filterTier !== 'all') list = list.filter(a => String(a.tier) === String(state.filterTier));
+      if (state.filterRights !== 'all') list = list.filter(a => a.rights === state.filterRights);
+      if (state.filterTicker !== 'all') list = list.filter(a => a.tickers.includes(state.filterTicker));
+      if (state.searchQuery.trim()) {
+        const q = state.searchQuery.toLowerCase();
+        list = list.filter(a =>
+          a.title.toLowerCase().includes(q) ||
+          a.sourceName.toLowerCase().includes(q) ||
+          a.excerpt.toLowerCase().includes(q) ||
+          a.tickers.some(t => t.toLowerCase().includes(q)) ||
+          a.institutions.some(i => i.toLowerCase().includes(q))
+        );
+      }
+      if (state.sortOrder === 'chronological') {
+        list.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+      } else {
+        list.sort((a, b) => b.importance - a.importance);
+      }
+      return list;
+    }
+
+    function formatEAT(iso) {
+      return new Date(iso).toLocaleString('en-GB', {
+        timeZone: 'Africa/Nairobi',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }) + ' EAT';
+    }
+
+    function rightsBadgeHTML(rights) {
+      const map = {
+        official_disclosure: { label: 'Official Disclosure', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800' },
+        licensed_full_text: { label: 'Licensed Full Text', cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800' },
+        summary_permitted: { label: 'Summary Permitted', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800' },
+        metadata_only: { label: 'Metadata Only', cls: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700' }
+      };
+      const item = map[rights] || map.metadata_only;
+      return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${item.cls}">${item.label}</span>`;
+    }
+
+    function renderCategoryTabsBar() {
+      return `
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          ${CATEGORIES.map(c => {
+            const active = state.activeCategory === c.id;
+            return `<button onclick="setFilter('activeCategory', '${c.id}')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${active ? 'bg-[#0B0B0C] text-white dark:bg-[#FF4D1C]' : 'bg-[#F5F5F7] dark:bg-zinc-900 text-[#5F6368] dark:text-zinc-400 hover:text-[#111315] dark:hover:text-white'}">${c.label}</button>`;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function renderEditorialGridCard(art) {
+      const fallback = makeFallbackSvg(art.title, art.categoryLabel);
+      const isSaved = state.savedIds.includes(art.id);
+      return `
+        <article onclick="openArticleDossier('${art.id}')" class="group rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] overflow-hidden flex flex-col justify-between hover:shadow-md transition-all cursor-pointer">
+          <div>
+            <div class="aspect-video w-full overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 relative">
+              <img src="${art.imageUrl}" alt="${art.title.replace(/"/g, '&quot;')}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <span class="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/75 text-white font-mono text-[10px] font-semibold">Tier ${art.tier} · ${art.sourceName}</span>
+            </div>
+            <div class="p-5">
+              <div class="flex items-center gap-2 text-xs mb-2">
+                <span class="font-semibold text-[#FF4D1C]">${art.categoryLabel}</span>
+                <span class="text-zinc-400">·</span>
+                <span class="text-[#5F6368] dark:text-zinc-400">${art.relativeTime}</span>
+              </div>
+              <h3 class="font-display font-bold text-lg leading-snug text-[#111315] dark:text-white group-hover:text-[#FF4D1C] transition-colors">${art.title}</h3>
+              <p class="mt-2 text-xs text-[#5F6368] dark:text-zinc-400 leading-relaxed line-clamp-2">${art.excerpt}</p>
+            </div>
+          </div>
+          <div class="px-5 py-3 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5">
+              ${art.tickers.length ? art.tickers.map(t => `<span class="px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[11px] font-semibold">NSE:${t}</span>`).join('') : `<span class="text-[11px] text-zinc-400 font-mono">KE · KES</span>`}
+            </div>
+            <button onclick="event.stopPropagation(); toggleSaveArticle('${art.id}')" class="font-semibold ${isSaved ? 'text-[#FF4D1C]' : 'text-zinc-500 hover:text-[#111315] dark:hover:text-white'}">${isSaved ? 'Saved' : '+ Save'}</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderFrontpage() {
+      const filtered = getFilteredArticles();
+      if (hasActiveFilters()) {
+        return `
+          <div class="space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB] dark:border-zinc-800">
+              <div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-[#FF4D1C]">Filtered Intelligence Feed</div>
+                <h1 class="font-display font-extrabold text-2xl sm:text-3xl tracking-tight mt-0.5">${filtered.length} Matching ${filtered.length === 1 ? 'Article' : 'Articles'}</h1>
+              </div>
+              <button onclick="resetFilters()" class="px-3.5 py-2 rounded-lg bg-[#0B0B0C] dark:bg-zinc-800 text-white text-xs font-semibold">Reset Filters</button>
+            </div>
+            ${renderCategoryTabsBar()}
+            ${filtered.length === 0
+              ? `<div class="py-16 text-center rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900/50 space-y-3"><p class="font-display font-bold text-lg">No matching Kenyan market articles.</p><button onclick="resetFilters()" class="px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Clear Filters</button></div>`
+              : `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${filtered.map(art => renderEditorialGridCard(art)).join('')}</div>`
+            }
+          </div>
+        `;
+      }
+
+      const lead = ARTICLES[0];
+      const stack = ARTICLES.slice(1, 4);
+      const overlays = ARTICLES.slice(4, 6);
+      const latest = ARTICLES.slice(6);
+      const leadFallback = makeFallbackSvg(lead.title, lead.categoryLabel);
+
+      return `
+        <div class="space-y-10 sm:space-y-12">
+          <!-- Asymmetric 2-Column Hero Grid -->
+          <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-9 items-start">
+            <article onclick="openArticleDossier('${lead.id}')" class="lg:col-span-6 xl:col-span-7 group cursor-pointer">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-full bg-[#0B0B0C] dark:bg-zinc-800 text-white flex items-center justify-center font-display font-extrabold text-xs shrink-0 ring-2 ring-[#FF4D1C]/20">
+                  ${lead.sourceName.slice(0, 2).toUpperCase()}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold truncate">${lead.sourceName}</div>
+                  <div class="text-[11px] text-[#5F6368] dark:text-zinc-400 truncate">${lead.authorRole}</div>
+                </div>
+              </div>
+
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl xl:text-[42px] leading-[1.12] tracking-[-0.025em] group-hover:text-[#FF4D1C] transition-colors">
+                ${lead.title}
+              </h1>
+
+              <div class="mt-3.5 flex flex-wrap items-center gap-2 text-xs font-medium">
+                <span class="font-semibold text-[#FF4D1C]">${lead.categoryLabel}</span>
+                <span class="text-zinc-400">·</span>
+                <span class="text-[#5F6368] dark:text-zinc-400">${lead.relativeTime}</span>
+                ${lead.tickers.map(t => `<span class="ml-1 px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[11px] font-semibold">NSE:${t}</span>`).join('')}
+              </div>
+
+              <div class="mt-5 rounded-2xl overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 aspect-video">
+                <img src="${lead.imageUrl}" alt="${lead.title.replace(/"/g, '&quot;')}" onerror="this.onerror=null;this.src='${leadFallback}';" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500" />
+              </div>
+            </article>
+
+            <div class="lg:col-span-6 xl:col-span-5 divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+              ${stack.map((item, idx) => {
+                const thumbFallback = makeFallbackSvg(item.title, item.categoryLabel);
+                const cluster = CLUSTERS[item.clusterId];
+                return `
+                  <article onclick="openArticleDossier('${item.id}')" class="${idx === 0 ? 'pb-5' : idx === stack.length - 1 ? 'pt-5' : 'py-5'} flex items-start justify-between gap-4 group cursor-pointer">
+                    <div class="flex-1 min-w-0">
+                      <h2 class="font-display font-bold text-base sm:text-[17px] leading-snug tracking-[-0.01em] group-hover:text-[#FF4D1C] transition-colors">${item.title}</h2>
+                      <p class="mt-1.5 text-xs sm:text-[13px] text-[#5F6368] dark:text-zinc-400 leading-relaxed line-clamp-2">${item.excerpt}</p>
+                      <div class="mt-2.5 flex items-center gap-2 text-xs">
+                        <span class="font-semibold text-[#FF4D1C]">${item.categoryLabel}</span>
+                        <span class="text-zinc-400">·</span>
+                        <span class="text-[#5F6368] dark:text-zinc-400">${cluster && cluster.articleIds.length > 1 ? `${cluster.articleIds.length} sources` : item.readTime}</span>
+                      </div>
+                    </div>
+                    <div class="w-28 sm:w-36 aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0">
+                      <img src="${item.imageUrl}" alt="${item.title.replace(/"/g, '&quot;')}" loading="lazy" onerror="this.onerror=null;this.src='${thumbFallback}';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                  </article>
+                `;
+              }).join('')}
+            </div>
+          </section>
+
+          <!-- 2-Column Dark-Scrim Overlay Feature Row -->
+          <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            ${overlays.map(item => {
+              const overlayFallback = makeFallbackSvg(item.title, item.categoryLabel);
+              return `
+                <article onclick="openArticleDossier('${item.id}')" class="group relative rounded-2xl overflow-hidden aspect-[16/10] bg-[#0B0B0C] cursor-pointer shadow-sm">
+                  <img src="${item.imageUrl}" alt="${item.title.replace(/"/g, '&quot;')}" loading="lazy" onerror="this.onerror=null;this.src='${overlayFallback}';" class="w-full h-full object-cover opacity-90 group-hover:scale-[1.03] transition-transform duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
+                  <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-white">
+                    <div class="flex items-center gap-2 text-xs font-medium mb-2">
+                      <span class="font-semibold text-[#FF4D1C]">${item.categoryLabel}</span>
+                      <span class="text-white/40">|</span>
+                      <span class="text-zinc-300">${item.relativeTime}</span>
+                      <span class="text-white/40">·</span>
+                      <span class="text-zinc-300">${item.sourceName}</span>
+                    </div>
+                    <h3 class="font-display font-bold text-lg sm:text-xl leading-snug tracking-tight text-white group-hover:text-[#FF4D1C] transition-colors">${item.title}</h3>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </section>
+
+          <!-- Latest Articles Grid -->
+          <section class="space-y-6 pt-2">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <h2 class="font-display font-extrabold text-2xl sm:text-[26px] tracking-tight">Latest Articles</h2>
+              <div class="flex items-center gap-4">
+                <div class="inline-flex rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 p-0.5 border border-[#E5E7EB] dark:border-zinc-800 text-xs">
+                  <button onclick="setSortOrder('chronological')" class="px-2.5 py-1 rounded-md font-medium ${state.sortOrder === 'chronological' ? 'bg-white dark:bg-zinc-800 shadow-2xs font-semibold' : 'text-zinc-500'}">Chronological</button>
+                  <button onclick="setSortOrder('importance')" class="px-2.5 py-1 rounded-md font-medium ${state.sortOrder === 'importance' ? 'bg-white dark:bg-zinc-800 shadow-2xs font-semibold' : 'text-zinc-500'}">AI Priority</button>
+                </div>
+                <button onclick="setFilter('activeCategory', 'corporate_developments')" class="text-xs sm:text-sm font-semibold text-[#FF4D1C] hover:underline">See More &rarr;</button>
+              </div>
+            </div>
+
+            ${renderCategoryTabsBar()}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${latest.map(art => renderEditorialGridCard(art)).join('')}
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderMarketsPage() {
+      const actions = [
+        { issuer: 'Safaricom PLC (SCOM)', type: 'Interim Dividend', terms: 'KES 0.65 / share', announced: '20 Nov 2026', record: '18 Dec 2026', pay: '31 Jan 2027', artId: 'ART-2026-0891' },
+        { issuer: 'CBK 91-Day T-Bill (2604/091)', type: 'Treasury Auction', terms: '12.482% Yield (KES 31.21B)', announced: '20 Nov 2026', record: '23 Nov 2026', pay: '22 Feb 2027', artId: 'ART-2026-0890' },
+        { issuer: 'KCB Group PLC (KCB)', type: '9M 2026 Earnings', terms: 'PAT KES 45.8B (+18.2%)', announced: '19 Nov 2026', record: '—', pay: '—', artId: 'ART-2026-0887' },
+        { issuer: 'CBK 15-Yr IFB1/2026/015', type: 'Infrastructure Bond', terms: 'Tax-Exempt Tap Issue', announced: '20 Nov 2026', record: '25 Nov 2026', pay: 'Semi-Annual', artId: 'ART-2026-0886' },
+        { issuer: 'Equity Group Holdings (EQTY)', type: '9M 2026 Balance Sheet', terms: 'Assets KES 1.74T (+9.8%)', announced: '15 Nov 2026', record: '—', pay: '—', artId: 'ART-2026-0883' }
+      ];
+
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Markets &amp; Corporate Actions</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Event Clusters &amp; Extracted Actions</h1>
+            <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">Underlying Kenyan market events grouped across publications with missing dates preserved as null.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            ${Object.entries(CLUSTERS).map(([cid, cl]) => `
+              <div class="p-5 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] flex flex-col justify-between">
+                <div>
+                  <span class="font-mono text-[10px] uppercase tracking-wider text-[#FF4D1C] font-bold">${cid} · ${cl.articleIds.length} ${cl.articleIds.length === 1 ? 'Source' : 'Sources'}</span>
+                  <h2 class="font-display font-bold text-base mt-1.5">${cl.title}</h2>
+                  <p class="mt-2 text-xs text-[#5F6368] dark:text-zinc-400 leading-relaxed">${cl.synthesis}</p>
+                </div>
+                <button onclick="openArticleDossier('${cl.articleIds[0]}')" class="mt-4 text-left text-xs font-bold text-[#FF4D1C] hover:underline">Open Cluster Dossier &rarr;</button>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 overflow-x-auto bg-white dark:bg-[#12141A]">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900 font-semibold">
+                  <th class="py-3.5 px-5">Issuer / Security</th>
+                  <th class="py-3.5 px-5">Event Type</th>
+                  <th class="py-3.5 px-5">Extracted Terms</th>
+                  <th class="py-3.5 px-5">Announced</th>
+                  <th class="py-3.5 px-5">Record / Closure</th>
+                  <th class="py-3.5 px-5">Payment / Maturity</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#E5E7EB] dark:divide-zinc-800 tabular">
+                ${actions.map(r => `
+                  <tr onclick="openArticleDossier('${r.artId}')" class="hover:bg-[#F5F5F7]/70 dark:hover:bg-zinc-900/60 cursor-pointer">
+                    <td class="py-3.5 px-5 font-bold">${r.issuer}</td>
+                    <td class="py-3.5 px-5">${r.type}</td>
+                    <td class="py-3.5 px-5 font-mono font-semibold text-[#FF4D1C]">${r.terms}</td>
+                    <td class="py-3.5 px-5 font-mono text-zinc-500">${r.announced}</td>
+                    <td class="py-3.5 px-5 font-mono text-zinc-500">${r.record}</td>
+                    <td class="py-3.5 px-5 font-mono text-zinc-500">${r.pay}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCompaniesPage() {
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">NSE Listed Issuers</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Company Intelligence Profiles</h1>
+            <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">Indicative reference prices in KES; not a licensed live exchange feed.</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${ISSUERS.map(iss => {
+              const followed = state.watchlist.includes(iss.ticker);
+              return `
+                <div onclick="openIssuerDossier('${iss.ticker}')" class="p-5 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] hover:shadow-md transition-all cursor-pointer flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="px-2.5 py-1 rounded-md bg-[#0B0B0C] dark:bg-zinc-800 text-white font-mono text-xs font-bold">NSE:${iss.ticker}</span>
+                      <button onclick="event.stopPropagation(); toggleWatchlist('${iss.ticker}')" class="px-2.5 py-1 rounded-md text-xs font-semibold border ${followed ? 'bg-[#FF4D1C] text-white border-[#FF4D1C]' : 'border-zinc-300 dark:border-zinc-700'}">${followed ? 'Following' : '+ Follow'}</button>
+                    </div>
+                    <h3 class="font-display font-bold text-lg mt-3">${iss.name}</h3>
+                    <div class="text-xs text-zinc-500 mt-0.5">${iss.sector} · ${iss.isin}</div>
+                    <p class="mt-2.5 text-xs text-[#5F6368] dark:text-zinc-400 line-clamp-2 leading-relaxed">${iss.overview}</p>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between font-mono text-xs tabular">
+                    <span>Ref: <strong>KES ${iss.refPrice}</strong> <span class="${iss.change.startsWith('-') ? 'text-rose-600' : 'text-emerald-600'}">${iss.change}</span></span>
+                    <span class="text-zinc-500">Yield: <strong>${iss.yield}</strong></span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInstitutionsPage() {
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Regulators &amp; Market Infrastructure</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">CMA, CBK, NSE, CDSC &amp; National Treasury</h1>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            ${INSTITUTIONS.map(inst => `
+              <div class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+                <div class="flex items-center justify-between">
+                  <span class="px-3 py-1 rounded-lg bg-[#0B0B0C] dark:bg-zinc-800 text-white font-mono text-xs font-bold">${inst.code}</span>
+                  <a href="${inst.website}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[#FF4D1C] hover:underline">Official Site &nearr;</a>
+                </div>
+                <div>
+                  <h2 class="font-display font-bold text-xl">${inst.name}</h2>
+                  <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">${inst.role}</div>
+                  <p class="mt-2 text-xs text-[#5F6368] dark:text-zinc-400 leading-relaxed">${inst.mandate}</p>
+                </div>
+                <div class="pt-3 border-t border-[#E5E7EB] dark:border-zinc-800 space-y-1.5 text-xs">
+                  ${inst.notices.map(n => `<div>• ${n}</div>`).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderToolsPage() {
+      const xirr = computeXIRR(state.cashFlows);
+      const netKes = state.cashFlows.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Research &amp; Tools</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">XIRR Solver, KES FX &amp; Withholding Tax Reckoner</h1>
+          </div>
+
+          <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="font-display font-bold text-xl">Dated-Cash-Flow XIRR Calculator (KES)</h2>
+                <p class="text-xs text-[#5F6368] dark:text-zinc-400">Negative values denote outflows; positive values denote dividends, coupons, or sale proceeds.</p>
+              </div>
+              <button onclick="addCashFlow()" class="px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white font-semibold text-xs">+ Add Cash Flow</button>
+            </div>
+
+            <div class="space-y-2">
+              ${state.cashFlows.map((cf, i) => `
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <input type="date" value="${cf.date}" onchange="editCashFlow(${i}, 'date', this.value)" class="col-span-4 sm:col-span-3 px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-xs" />
+                  <input type="number" value="${cf.amount}" onchange="editCashFlow(${i}, 'amount', parseFloat(this.value))" class="col-span-4 sm:col-span-3 px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-xs tabular" />
+                  <input type="text" value="${cf.note}" onchange="editCashFlow(${i}, 'note', this.value)" class="col-span-3 sm:col-span-5 px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 text-xs" />
+                  <button onclick="deleteCashFlow(${i})" class="col-span-1 text-xs font-mono text-zinc-400 hover:text-rose-600 text-center">✕</button>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900">
+                <div class="text-xs text-zinc-500">Annualised XIRR (ACT/365)</div>
+                <div class="font-display font-extrabold text-2xl mt-1 tabular ${xirr !== null && xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}">${xirr !== null ? (xirr * 100).toFixed(2) + '%' : 'Invalid'}</div>
+              </div>
+              <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900">
+                <div class="text-xs text-zinc-500">Net Cumulative Cash Flow</div>
+                <div class="font-display font-extrabold text-2xl mt-1 tabular">KES ${netKes.toLocaleString()}</div>
+              </div>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-lg">KES Currency Converter</h2>
+                <span class="px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[10px]">CBK Indicative</span>
+              </div>
+              <input id="fx-amount" type="number" value="1000000" oninput="renderFXList()" class="w-full px-3.5 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-sm tabular" />
+              <div id="fx-results" class="divide-y divide-[#E5E7EB] dark:divide-zinc-800 font-mono text-xs tabular"></div>
+            </section>
+
+            <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-lg">After-Tax Yield Reckoner</h2>
+                <span class="px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[10px]">Kenya WHT</span>
+              </div>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs text-zinc-500 mb-1">Gross Yield (%)</label>
+                  <input id="wht-gross" type="number" step="0.05" value="12.48" oninput="renderWHTNet()" class="w-full px-3.5 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-sm tabular" />
+                </div>
+                <div>
+                  <label class="block text-xs text-zinc-500 mb-1">Instrument Tax Class</label>
+                  <select id="wht-tax" onchange="renderWHTNet()" class="w-full px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 text-xs">
+                    <option value="0.05">NSE Listed Equity Dividend (5% WHT)</option>
+                    <option value="0.15" selected>Treasury Bill / MMF / FXD Bond (15% WHT)</option>
+                    <option value="0.10">Treasury Bond &ge; 10 Years (10% WHT)</option>
+                    <option value="0.00">Infrastructure Bond IFB (0% Exempt)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900 flex items-center justify-between">
+                <span class="text-xs font-semibold text-zinc-500">Net After-Tax Yield</span>
+                <span id="wht-net-out" class="font-display font-extrabold text-2xl text-[#FF4D1C] tabular">10.61%</span>
+              </div>
+            </section>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSavedPage() {
+      const savedList = state.savedIds.map(id => ARTICLES.find(a => a.id === id)).filter(Boolean);
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Saved &amp; Alerts</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Watchlist, Alerts &amp; Offline Library</h1>
+          </div>
+
+          <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-3">
+            <h2 class="font-display font-bold text-lg">Followed Issuers &amp; Regulators (${state.watchlist.length})</h2>
+            <div class="flex flex-wrap gap-2">
+              ${state.watchlist.map(sym => `
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-xs font-bold">
+                  <button onclick="openIssuerDossier('${sym}')">${sym}</button>
+                  <button onclick="toggleWatchlist('${sym}')" class="text-zinc-400 hover:text-rose-600">✕</button>
+                </span>
+              `).join('')}
+            </div>
+          </section>
+
+          <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-display font-bold text-lg">Alert Rules</h2>
+              <button onclick="addAlertRule()" class="px-3 py-1.5 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">+ Add Alert</button>
+            </div>
+            <div class="divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+              ${state.alerts.map(al => `
+                <div class="py-3 flex items-center justify-between gap-2 text-xs">
+                  <div>
+                    <span class="font-mono font-bold text-[#FF4D1C] mr-2">[${al.target}]</span>
+                    <span class="font-semibold">${al.condition}</span>
+                    <span class="text-zinc-500 ml-2">· ${al.channel}</span>
+                  </div>
+                  <button onclick="toggleAlert('${al.id}')" class="px-2.5 py-1 rounded-md font-semibold ${al.enabled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800'}">${al.enabled ? 'Active' : 'Paused'}</button>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <h2 class="font-display font-bold text-xl">Saved Offline Articles (${savedList.length})</h2>
+            ${savedList.length === 0
+              ? `<p class="text-sm text-zinc-500">No saved articles yet.</p>`
+              : `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${savedList.map(art => renderEditorialGridCard(art)).join('')}</div>`
+            }
+          </section>
+        </div>
+      `;
+    }
+
+    function renderSourcesPage() {
+      return `
+        <div class="space-y-8">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Source Registry</span>
+              <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Connectors, Tiers (1–4) &amp; Rights</h1>
+            </div>
+            <button onclick="runLiveIngestionSync()" class="px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Run Ingestion Sync</button>
+          </div>
+
+          <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 overflow-x-auto bg-white dark:bg-[#12141A]">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900 font-semibold">
+                  <th class="py-3.5 px-5">Source</th>
+                  <th class="py-3.5 px-5">Class</th>
+                  <th class="py-3.5 px-5">Tier</th>
+                  <th class="py-3.5 px-5">Content Rights</th>
+                  <th class="py-3.5 px-5">Connector</th>
+                  <th class="py-3.5 px-5 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+                ${SOURCES.map(s => `
+                  <tr>
+                    <td class="py-3.5 px-5 font-bold">${s.name}</td>
+                    <td class="py-3.5 px-5 text-zinc-500">${s.class}</td>
+                    <td class="py-3.5 px-5 font-mono font-semibold">Tier ${s.tier}</td>
+                    <td class="py-3.5 px-5">${rightsBadgeHTML(s.rights)}</td>
+                    <td class="py-3.5 px-5 font-mono text-zinc-500">${s.method} (${s.poll})</td>
+                    <td class="py-3.5 px-5 text-right font-semibold text-emerald-600 dark:text-emerald-400">${s.status} · ${s.lastSuccess}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openArticleDossier(id) {
+      const art = ARTICLES.find(a => a.id === id);
+      if (!art) return;
+      const fallback = makeFallbackSvg(art.title, art.categoryLabel);
+      const isSaved = state.savedIds.includes(art.id);
+      const cluster = CLUSTERS[art.clusterId];
+      const related = cluster ? cluster.articleIds.map(aid => ARTICLES.find(x => x.id === aid)).filter(Boolean) : [art];
+
+      const rightsBlock = (art.rights === 'official_disclosure' || art.rights === 'licensed_full_text')
+        ? `<div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 space-y-2"><div class="font-mono text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">Authorised Full Text</div><p class="text-xs sm:text-sm leading-relaxed whitespace-pre-line">${art.fullText}</p></div>`
+        : `<div class="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 text-xs"><div class="font-bold text-amber-800 dark:text-amber-300">Rights Gate (${art.rights === 'summary_permitted' ? 'Summary Permitted' : 'Metadata Only'})</div><p class="mt-1 text-amber-900/80 dark:text-amber-200/80">Full article text remains on ${art.sourceName}; KC-MIP provides source-grounded summary and direct publisher link.</p></div>`;
+
+      document.getElementById('dossier-body').innerHTML = `
+        <div class="sticky top-0 z-10 px-6 py-4 bg-white/95 dark:bg-[#12141A]/95 border-b border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-[#0B0B0C] text-white font-mono text-[10px] font-bold">Tier ${art.tier}</span>
+            ${rightsBadgeHTML(art.rights)}
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleSaveArticle('${art.id}'); openArticleDossier('${art.id}');" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-xs font-semibold ${isSaved ? 'text-[#FF4D1C] border-[#FF4D1C]' : ''}">${isSaved ? 'Saved Offline' : '+ Save'}</button>
+            <button onclick="closeDossier()" class="px-2.5 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 text-xs font-mono font-bold">✕</button>
+          </div>
+        </div>
+
+        <div class="p-6 sm:p-8 space-y-6">
+          <div>
+            <div class="text-xs font-semibold text-[#FF4D1C]">${art.categoryLabel} · ${art.sourceName}</div>
+            <h2 class="font-display font-extrabold text-2xl sm:text-3xl leading-tight tracking-tight mt-2">${art.title}</h2>
+            <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-zinc-500">
+              <span>Published: <strong class="text-[#111315] dark:text-zinc-200">${formatEAT(art.publishedAt)}</strong></span>
+              <span>Collected: <strong class="text-[#111315] dark:text-zinc-200">${formatEAT(art.collectedAt)}</strong></span>
+            </div>
+          </div>
+
+          <figure class="rounded-2xl overflow-hidden border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900">
+            <div class="aspect-video w-full overflow-hidden">
+              <img src="${art.imageUrl}" alt="${art.title.replace(/"/g, '&quot;')}" onerror="this.onerror=null;this.src='${fallback}';" class="w-full h-full object-cover" />
+            </div>
+            <figcaption class="px-4 py-2.5 text-[11px] text-zinc-500 border-t border-[#E5E7EB] dark:border-zinc-800">${art.imageCaption}</figcaption>
+          </figure>
+
+          <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 overflow-hidden">
+            <div class="px-5 py-3 bg-[#F5F5F7] dark:bg-zinc-900 border-b border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between">
+              <span class="font-display font-bold text-xs uppercase tracking-wider">Source-Grounded Summary</span>
+              <span class="font-mono text-[10px] text-zinc-500">Conf: ${art.confidence}</span>
+            </div>
+            <div class="p-5 space-y-4 text-xs sm:text-sm">
+              <p class="leading-relaxed">${art.excerpt}</p>
+              <ul class="space-y-1.5">
+                ${art.keyDevelopments.map(k => `<li class="flex gap-2"><span class="text-[#FF4D1C] font-bold">•</span><span>${k}</span></li>`).join('')}
+              </ul>
+              <div class="pt-2 border-t border-[#E5E7EB] dark:border-zinc-800 text-[#5F6368] dark:text-zinc-300">
+                <strong class="text-[#111315] dark:text-white">Why It Matters:</strong> ${art.whyItMatters}
+              </div>
+            </div>
+          </div>
+
+          ${rightsBlock}
+
+          ${related.length > 1 ? `
+            <div class="space-y-2.5">
+              <div class="font-display font-bold text-sm">Related Coverage (${related.length} Sources)</div>
+              <div class="rounded-xl border border-[#E5E7EB] dark:border-zinc-800 divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+                ${related.map(rel => `
+                  <div onclick="openArticleDossier('${rel.id}')" class="p-3.5 flex items-center justify-between gap-3 hover:bg-[#F5F5F7] dark:hover:bg-zinc-900 cursor-pointer">
+                    <div>
+                      <div class="text-[11px] font-bold text-[#FF4D1C]">${rel.sourceName} · Tier ${rel.tier}</div>
+                      <div class="text-xs font-semibold mt-0.5">${rel.title}</div>
+                    </div>
+                    <span class="text-xs text-zinc-400">&rarr;</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="rounded-xl border border-[#E5E7EB] dark:border-zinc-800 overflow-hidden">
+            <div class="px-4 py-2 bg-[#F5F5F7] dark:bg-zinc-900 border-b border-[#E5E7EB] dark:border-zinc-800 font-mono text-[10px] uppercase tracking-wider text-zinc-500">Extracted Event Record</div>
+            <pre class="p-4 font-mono text-xs overflow-x-auto bg-zinc-50 dark:bg-zinc-950">${JSON.stringify(art.extractedPayload, null, 2)}</pre>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="px-5 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Read Original Source &nearr;</a>
+            ${art.tickers.length ? `<button onclick="openIssuerDossier('${art.tickers[0]}')" class="px-4 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold">NSE:${art.tickers[0]} Profile &rarr;</button>` : ''}
+          </div>
+        </div>
+      `;
+      document.getElementById('dossier-drawer').classList.remove('hidden');
+    }
+
+    function openIssuerDossier(ticker) {
+      const iss = ISSUERS.find(i => i.ticker === ticker);
+      if (!iss) return;
+      const followed = state.watchlist.includes(iss.ticker);
+      const linked = ARTICLES.filter(a => a.tickers.includes(iss.ticker));
+
+      document.getElementById('dossier-body').innerHTML = `
+        <div class="sticky top-0 z-10 px-6 py-4 bg-white/95 dark:bg-[#12141A]/95 border-b border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between">
+          <span class="px-2.5 py-1 rounded-md bg-[#0B0B0C] text-white font-mono text-xs font-bold">NSE:${iss.ticker}</span>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleWatchlist('${iss.ticker}'); openIssuerDossier('${iss.ticker}');" class="px-3 py-1.5 rounded-lg text-xs font-bold ${followed ? 'bg-[#FF4D1C] text-white' : 'border border-zinc-300 dark:border-zinc-700'}">${followed ? 'Following' : '+ Follow'}</button>
+            <button onclick="closeDossier()" class="px-2.5 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 text-xs font-mono font-bold">✕</button>
+          </div>
+        </div>
+        <div class="p-6 sm:p-8 space-y-6">
+          <div>
+            <h2 class="font-display font-extrabold text-2xl sm:text-3xl">${iss.name}</h2>
+            <div class="text-xs font-mono text-zinc-500 mt-1">${iss.sector} · ${iss.isin}</div>
+            <p class="mt-3 text-sm text-[#5F6368] dark:text-zinc-300 leading-relaxed">${iss.overview}</p>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-3.5 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900"><div class="text-[11px] text-zinc-500">Ref Price</div><div class="font-display font-extrabold text-lg mt-0.5 tabular">KES ${iss.refPrice}</div></div>
+            <div class="p-3.5 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900"><div class="text-[11px] text-zinc-500">Mkt Cap</div><div class="font-display font-extrabold text-lg mt-0.5 tabular">${iss.mktCap}</div></div>
+            <div class="p-3.5 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900"><div class="text-[11px] text-zinc-500">Ind. Yield</div><div class="font-display font-extrabold text-lg mt-0.5 tabular">${iss.yield}</div></div>
+          </div>
+          <div class="space-y-3">
+            <div class="font-display font-bold text-sm">Linked Coverage (${linked.length})</div>
+            ${linked.map(art => `<div onclick="openArticleDossier('${art.id}')" class="p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 hover:border-[#FF4D1C] cursor-pointer"><div class="text-xs font-semibold text-[#FF4D1C]">${art.sourceName} · ${art.relativeTime}</div><div class="font-display font-bold text-base mt-1">${art.title}</div></div>`).join('')}
+          </div>
+        </div>
+      `;
+      document.getElementById('dossier-drawer').classList.remove('hidden');
+    }
+
+    function closeDossier() {
+      document.getElementById('dossier-drawer').classList.add('hidden');
+    }
+
+    function computeXIRR(flows) {
+      if (!flows || flows.length < 2) return null;
+      const valid = flows.filter(f => f.date && !isNaN(f.amount) && f.amount !== 0);
+      if (valid.length < 2 || !valid.some(f => f.amount > 0) || !valid.some(f => f.amount < 0)) return null;
+      const sorted = [...valid].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const t0 = new Date(sorted[0].date).getTime();
+      const yearMs = 365.0 * 24 * 60 * 60 * 1000;
+      const times = sorted.map(f => (new Date(f.date).getTime() - t0) / yearMs);
+      const amounts = sorted.map(f => Number(f.amount));
+      let r = 0.12;
+      for (let i = 0; i < 60; i++) {
+        let f = 0, df = 0;
+        for (let k = 0; k < amounts.length; k++) {
+          const d = Math.pow(1 + r, times[k]);
+          f += amounts[k] / d;
+          df -= (times[k] * amounts[k]) / (d * (1 + r));
+        }
+        if (Math.abs(f) < 1e-6) return r;
+        if (Math.abs(df) < 1e-10) break;
+        const next = r - f / df;
+        r = next <= -0.999 ? -0.5 : next;
+      }
+      return isFinite(r) ? r : null;
+    }
+
+    function addCashFlow() {
+      state.cashFlows.push({ date: '2026-12-31', amount: 18500, note: 'Dividend / Coupon Receipt' });
+      saveState();
+      renderApp();
+    }
+
+    function editCashFlow(idx, key, val) {
+      if (state.cashFlows[idx]) {
+        state.cashFlows[idx][key] = val;
+        saveState();
+        renderApp();
+      }
+    }
+
+    function deleteCashFlow(idx) {
+      if (state.cashFlows.length <= 2) {
+        showToast('At least two dated cash flows required');
+        return;
+      }
+      state.cashFlows.splice(idx, 1);
+      saveState();
+      renderApp();
+    }
+
+    function renderFXList() {
+      const el = document.getElementById('fx-amount');
+      const box = document.getElementById('fx-results');
+      if (!el || !box) return;
+      const kes = parseFloat(el.value) || 0;
+      const rates = [
+        { code: 'USD', name: 'US Dollar', rate: 1 / 129.20, dec: 2 },
+        { code: 'EUR', name: 'Euro', rate: 1 / 138.45, dec: 2 },
+        { code: 'GBP', name: 'British Pound', rate: 1 / 164.10, dec: 2 },
+        { code: 'UGX', name: 'Uganda Shilling', rate: 28.45, dec: 0 },
+        { code: 'TZS', name: 'Tanzania Shilling', rate: 20.65, dec: 0 }
+      ];
+      box.innerHTML = rates.map(r => `<div class="py-2.5 flex items-center justify-between"><span><strong>${r.code}</strong> <span class="text-zinc-400">(${r.name})</span></span><strong>${(kes * r.rate).toLocaleString(undefined, { minimumFractionDigits: r.dec, maximumFractionDigits: r.dec })} ${r.code}</strong></div>`).join('');
+    }
+
+    function renderWHTNet() {
+      const g = document.getElementById('wht-gross');
+      const t = document.getElementById('wht-tax');
+      const out = document.getElementById('wht-net-out');
+      if (!g || !t || !out) return;
+      out.textContent = ((parseFloat(g.value) || 0) * (1 - (parseFloat(t.value) || 0))).toFixed(2) + '%';
+    }
+
+    function navigateTo(page) {
+      state.activePage = page;
+      renderTopNav();
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleMobileDrawer() {
+      document.getElementById('mobile-drawer').classList.toggle('hidden');
+    }
+
+    function toggleFilterBar() {
+      document.getElementById('multi-filter-drawer').classList.toggle('hidden');
+    }
+
+    function setFilter(key, val) {
+      state[key] = val;
+      if (state.activePage !== 'frontpage') {
+        state.activePage = 'frontpage';
+        renderTopNav();
+      }
+      renderApp();
+    }
+
+    function setSortOrder(order) {
+      state.sortOrder = order;
+      renderApp();
+    }
+
+    function handleSearch(val) {
+      state.searchQuery = val;
+      if (state.activePage !== 'frontpage') {
+        state.activePage = 'frontpage';
+        renderTopNav();
+      }
+      renderApp();
+    }
+
+    function resetFilters() {
+      state.activeCategory = 'all';
+      state.filterTier = 'all';
+      state.filterRights = 'all';
+      state.filterTicker = 'all';
+      state.searchQuery = '';
+      const inp = document.getElementById('global-search');
+      if (inp) inp.value = '';
+      ['filter-tier', 'filter-rights', 'filter-ticker'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = 'all';
+      });
+      renderApp();
+    }
+
+    function toggleSaveArticle(id) {
+      const idx = state.savedIds.indexOf(id);
+      if (idx >= 0) {
+        state.savedIds.splice(idx, 1);
+        showToast('Removed from Saved Library');
+      } else {
+        state.savedIds.push(id);
+        showToast('Saved for Offline Reading');
+      }
+      saveState();
+      renderTopNav();
+      renderApp();
+    }
+
+    function toggleWatchlist(sym) {
+      const idx = state.watchlist.indexOf(sym);
+      if (idx >= 0) {
+        state.watchlist.splice(idx, 1);
+        showToast(`Unfollowed ${sym}`);
+      } else {
+        state.watchlist.push(sym);
+        showToast(`Following ${sym}`);
+      }
+      saveState();
+      renderApp();
+    }
+
+    function addAlertRule() {
+      state.alerts.unshift({
+        id: 'AL-' + Math.floor(200 + Math.random() * 700),
+        target: 'EABL / KEGN',
+        condition: 'Dividend or Corporate Filing',
+        channel: 'Instant Push + Email',
+        enabled: true
+      });
+      saveState();
+      renderApp();
+      showToast('Alert rule added');
+    }
+
+    function toggleAlert(id) {
+      const a = state.alerts.find(x => x.id === id);
+      if (a) {
+        a.enabled = !a.enabled;
+        saveState();
+        renderApp();
+      }
+    }
+
+    function runLiveIngestionSync() {
+      const newId = 'ART-2026-' + Math.floor(900 + Math.random() * 99);
+      const now = new Date().toISOString();
+      ARTICLES.unshift({
+        id: newId,
+        clusterId: 'CLU-CDSC-SYNC',
+        title: 'CDSC Reports 14.2% Rise in Active Retail Accounts & Direct Mobile Dividend Payouts',
+        sourceName: 'CDSC Kenya',
+        authorRole: 'Depository Bulletin · Tier 1',
+        tier: 1,
+        rights: 'official_disclosure',
+        category: 'regulation_policy',
+        categoryLabel: 'Regulation',
+        relativeTime: 'Just now',
+        readTime: '3 min read',
+        publishedAt: now,
+        collectedAt: now,
+        importance: 96,
+        confidence: 0.98,
+        tickers: [],
+        institutions: ['CDSC', 'NSE', 'CMA'],
+        imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
+        imageCaption: 'Electronic clearing and direct mobile/bank dividend disbursement in Kenya.',
+        excerpt: 'Active retail CDS accounts grew 14.2% quarter-on-quarter as electronic dividend disbursement reached 91.4%.',
+        keyDevelopments: [
+          'Active retail CDS accounts up 14.2% QoQ.',
+          'Electronic dividend payouts reached 91.4% of distributions.'
+        ],
+        whyItMatters: 'Expands retail market participation and settlement efficiency on the NSE.',
+        extractedPayload: {
+          event_type: 'depository_bulletin',
+          institution: 'CDSC Kenya',
+          announcement_date: now.slice(0, 10),
+          record_date: null,
+          payment_date: null
+        },
+        fullText: 'CDSC Kenya confirmed a 14.2% quarterly rise in active retail CDS accounts and 91.4% electronic dividend adoption.',
+        sourceUrl: 'https://cdsckenya.com/'
+      });
+      SOURCES.forEach(s => { s.lastSuccess = 'Just now'; });
+      navigateTo('frontpage');
+      showToast(`Ingested ${newId} from CDSC Kenya`);
+    }
+
+    function openPricingModal() {
+      document.getElementById('pricing-modal').classList.remove('hidden');
+    }
+
+    function closePricingModal() {
+      document.getElementById('pricing-modal').classList.add('hidden');
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.remove('opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.add('opacity-0'), 2500);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDossier();
+        closePricingModal();
+      }
+    });
+
+    function renderApp() {
+      const root = document.getElementById('app-workspace');
+      switch (state.activePage) {
+        case 'frontpage': root.innerHTML = renderFrontpage(); break;
+        case 'markets': root.innerHTML = renderMarketsPage(); break;
+        case 'companies': root.innerHTML = renderCompaniesPage(); break;
+        case 'institutions': root.innerHTML = renderInstitutionsPage(); break;
+        case 'tools': root.innerHTML = renderToolsPage(); renderFXList(); renderWHTNet(); break;
+        case 'saved': root.innerHTML = renderSavedPage(); break;
+        case 'sources': root.innerHTML = renderSourcesPage(); break;
+        default: root.innerHTML = renderFrontpage();
+      }
+    }
+
+    loadState();
+    renderTopNav();
+    renderApp();
+  </script>
+</body>
+</html>

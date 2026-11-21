@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KC-MIP — Kenya Capital Markets Intelligence Platform</title>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['IBM Plex Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    .tabular { font-variant-numeric: tabular-nums; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(120, 125, 135, 0.35); border-radius: 999px; }
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    .skeleton { background: linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 100%); background-size: 400px 100%; animation: shimmer 1.4s ease-in-out infinite; }
+    .dark .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%); background-size: 400px 100%; }
+    .article-body { color: #1f2937; }
+    .dark .article-body { color: #d1d5db; }
+    .article-body h2 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.5rem; line-height:1.3; margin:2rem 0 .75rem; color:#111315; }
+    .dark .article-body h2 { color:#f9fafb; }
+    .article-body h3 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:1.2rem; margin:1.5rem 0 .5rem; color:#111315; }
+    .dark .article-body h3 { color:#f3f4f6; }
+    .article-body p { margin:0 0 1.15rem; font-size:1.05rem; line-height:1.75; }
+    .article-body a { color:#FF4D1C; text-decoration:underline; text-underline-offset:2px; }
+    .article-body ul, .article-body ol { margin:0 0 1.25rem 1.5rem; }
+    .article-body li { margin-bottom:.4rem; line-height:1.7; }
+    .article-body blockquote { border-left:4px solid #FF4D1C; padding-left:1rem; margin:1.5rem 0; font-style:italic; color:#4b5563; }
+    .dark .article-body blockquote { color:#9ca3af; }
+    .article-body figure { margin:1.75rem 0; }
+    .article-body figcaption { font-size:.75rem; color:#6b7280; margin-top:.5rem; }
+    .article-body img { border-radius:.75rem; width:100%; height:auto; }
+    .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.9rem; }
+    .article-body th, .article-body td { border:1px solid #e5e7eb; padding:.6rem .75rem; }
+    .dark .article-body th, .dark .article-body td { border-color:#27272a; }
+  </style>
+</head>
+<body class="bg-white text-[#111315] dark:bg-[#0C0D10] dark:text-[#F3F4F6] font-sans antialiased selection:bg-[#FF4D1C] selection:text-white overflow-x-hidden">
+
+  <!-- Top masthead -->
+  <header class="sticky top-0 z-40 bg-[#0B0B0C] text-white border-b border-white/10">
+    <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <button onclick="navigateTo('frontpage')" class="flex items-center gap-2.5 shrink-0 text-left">
+        <span class="w-8 h-8 rounded-lg bg-[#FF4D1C] flex items-center justify-center">
+          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7" />
+          </svg>
+        </span>
+        <div>
+          <span class="font-display font-extrabold text-lg tracking-tight text-white block leading-none">KC-MIP</span>
+          <span class="text-[9px] font-mono uppercase tracking-[0.16em] text-zinc-400 block mt-0.5">Kenya Markets</span>
+        </div>
+      </button>
+
+      <nav id="top-nav-links" class="hidden lg:flex items-center gap-1 text-[13px] font-medium"></nav>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="refreshNews()" title="Refresh News" class="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 0 0 5.1 6.1M4 16a8 8 0 0 0 14.9 1.9"/>
+          </svg>
+        </button>
+        <button onclick="toggleTheme()" title="Toggle Light/Dark Mode" class="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors">
+          <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+          <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button onclick="openPricingModal()" class="px-4 py-2 rounded-lg bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs tracking-wide transition-colors">
+          Subscribe
+        </button>
+        <button onclick="toggleMobileDrawer()" class="lg:hidden p-2 rounded-lg bg-white/10 text-white" aria-label="Menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Utility strip -->
+    <div class="bg-[#F5F5F7] dark:bg-[#14161B] text-[#111315] dark:text-zinc-200 border-b border-[#E5E7EB] dark:border-zinc-800">
+      <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between gap-3">
+        <button onclick="toggleFilterBar()" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[#0B0B0C] dark:bg-zinc-800 text-white text-xs font-medium hover:opacity-90 shrink-0">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h14" />
+          </svg>
+          <span class="hidden sm:inline">Filters</span>
+        </button>
+
+        <div class="flex-1 min-w-0 flex items-center justify-center gap-3 text-center overflow-hidden">
+          <button onclick="openPricingModal()" class="text-xs sm:text-[13px] font-medium hover:text-[#FF4D1C] transition-colors truncate">
+            Daily NSE, CBK &amp; CMA Intelligence Brief — Get morning KES market disclosures
+          </button>
+          <span id="live-stats" class="hidden xl:inline-flex items-center gap-2 pl-3 border-l border-zinc-300 dark:border-zinc-700 font-mono text-[11px] text-zinc-600 dark:text-zinc-400 tabular shrink-0">
+            <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Live</span>
+            <span>·</span>
+            <span id="stat-articles">—</span>
+            <span>·</span>
+            <span id="stat-sources">—</span>
+          </span>
+        </div>
+
+        <div class="relative flex items-center shrink-0">
+          <input
+            id="global-search"
+            type="text"
+            placeholder="Search SCOM, CBK, IFB..."
+            oninput="handleSearch(this.value)"
+            class="w-36 sm:w-56 focus:w-64 transition-all duration-200 pl-3 pr-8 py-1.5 rounded-md bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs text-[#111315] dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-[#FF4D1C]"
+          />
+          <svg class="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path stroke-linecap="round" d="m21 21-4.3-4.3"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div id="multi-filter-drawer" class="hidden border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#111318]">
+        <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">Category:</span>
+            <select id="filter-category" onchange="setFilter('activeCategory', this.value)" class="px-2.5 py-1.5 rounded-md bg-[#F5F5F7] dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium focus:outline-none">
+              <option value="all">All Categories</option>
+              <option value="equity_markets">Equities</option>
+              <option value="corporate_developments">Corporate</option>
+              <option value="fixed_income">Fixed Income</option>
+              <option value="regulation_policy">Regulation</option>
+              <option value="private_markets">Private Markets</option>
+            </select>
+
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 ml-2">Issuer:</span>
+            <select id="filter-ticker" onchange="setFilter('filterTicker', this.value)" class="px-2.5 py-1.5 rounded-md bg-[#F5F5F7] dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium focus:outline-none">
+              <option value="all">All NSE Issuers</option>
+            </select>
+          </div>
+
+          <button onclick="resetFilters()" class="px-2.5 py-1.5 rounded-md text-xs font-semibold text-[#FF4D1C] hover:bg-[#FF4D1C]/10 transition-colors">
+            Reset All
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile nav -->
+  <div id="mobile-drawer" class="fixed inset-0 z-50 hidden lg:hidden">
+    <div onclick="toggleMobileDrawer()" class="fixed inset-0 bg-black/60"></div>
+    <div class="relative w-72 max-w-[82vw] h-full bg-[#0B0B0C] text-white p-5 flex flex-col justify-between z-10">
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-white/10">
+          <span class="font-display font-extrabold text-base">KC-MIP</span>
+          <button onclick="toggleMobileDrawer()" class="p-1.5 rounded-md bg-white/10 text-xs">✕</button>
+        </div>
+        <nav id="mobile-nav-links" class="mt-4 flex flex-col gap-1"></nav>
+      </div>
+      <button onclick="toggleMobileDrawer(); openPricingModal();" class="w-full py-2.5 rounded-lg bg-[#FF4D1C] text-white font-display font-bold text-xs">
+        Subscribe · Intelligence Pro
+      </button>
+    </div>
+  </div>
+
+  <!-- Main workspace -->
+  <main id="app-workspace" class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-9"></main>
+
+  <footer class="border-t border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-[#111318] mt-14">
+    <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+      <div>
+        <div class="font-display font-bold text-sm text-[#111315] dark:text-white">KC-MIP · Kenya Capital Markets Intelligence Platform</div>
+        <p class="mt-0.5">Centralised Kenyan capital-markets news, event clusters, and research utilities (KES). Not a broker or investment adviser.</p>
+      </div>
+      <div class="font-mono text-[11px]">RIGHTS-AWARE · DPA 2019 · <span id="footer-stat">—</span></div>
+    </div>
+  </footer>
+
+  <!-- Pricing modal -->
+  <div id="pricing-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closePricingModal()" class="fixed inset-0 bg-black/65"></div>
+    <div class="relative w-full max-w-4xl bg-white dark:bg-[#12141A] rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 shadow-2xl overflow-hidden z-10 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 sm:p-7 border-b border-[#E5E7EB] dark:border-zinc-800 flex items-start justify-between gap-4 bg-[#0B0B0C] text-white">
+        <div>
+          <span class="inline-block px-2.5 py-0.5 rounded-full bg-[#FF4D1C] text-white font-mono text-[10px] uppercase tracking-wider font-semibold">KC-MIP Plans · KES</span>
+          <h2 class="font-display font-extrabold text-2xl mt-2 tracking-tight">Kenyan Capital Markets Intelligence Access</h2>
+          <p class="text-zinc-300 text-xs sm:text-sm mt-1">Core public market news remains free; upgrade for event clustering, historical search, alerts, and API feeds.</p>
+        </div>
+        <button onclick="closePricingModal()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-mono">ESC</button>
+      </div>
+      <div class="p-6 sm:p-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">Public</div>
+            <div class="font-display font-extrabold text-2xl mt-2">Free</div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• Chronological news feed</li>
+              <li>• All market divisions</li>
+              <li>• Source attribution links</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Active on Public Tier');" class="mt-6 w-full py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 font-semibold text-xs">Current Plan</button>
+        </div>
+        <div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Investor</div>
+            <div class="font-display font-extrabold text-2xl mt-2 tabular">KSh 499 <span class="text-xs font-normal text-zinc-500">/mo</span></div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• Personalised watchlists</li>
+              <li>• Custom company alerts</li>
+              <li>• XIRR &amp; WHT calculators</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Investor Tier trial enabled');" class="mt-6 w-full py-2 rounded-lg bg-[#0B0B0C] dark:bg-zinc-800 text-white font-semibold text-xs">Select Investor</button>
+        </div>
+        <div class="p-5 rounded-xl border-2 border-[#FF4D1C] bg-[#FF4D1C]/[0.03] flex flex-col justify-between relative">
+          <span class="absolute -top-2.5 right-4 px-2 py-0.5 rounded bg-[#FF4D1C] text-white font-mono text-[9px] uppercase font-bold">Popular</span>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Professional</div>
+            <div class="font-display font-extrabold text-2xl mt-2 tabular">KSh 1,999 <span class="text-xs font-normal text-zinc-500">/mo</span></div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• Cross-source event clusters</li>
+              <li>• Issuer intelligence profiles</li>
+              <li>• Historical &amp; semantic search</li>
+              <li>• CSV / JSON data exports</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Professional workspace active');" class="mt-6 w-full py-2 rounded-lg bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Start Pro Trial</button>
+        </div>
+        <div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">Institutional</div>
+            <div class="font-display font-extrabold text-2xl mt-2">Custom</div>
+            <ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <li>• REST Intelligence API</li>
+              <li>• Licensed full-text feeds</li>
+              <li>• Team seats &amp; RBAC</li>
+            </ul>
+          </div>
+          <button onclick="closePricingModal(); showToast('Institutional desk request logged');" class="mt-6 w-full py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 font-semibold text-xs">Contact Desk</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 pointer-events-none opacity-0 transition-opacity duration-200">
+    <div class="px-4 py-2.5 rounded-xl bg-[#0B0B0C] text-white text-xs font-medium shadow-xl border border-white/10 flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full bg-[#FF4D1C]"></span>
+      <span id="toast-msg">Ready</span>
+    </div>
+  </div>
+
+  <script>
+    const CATEGORY_LABELS = {
+      all: 'All',
+      equity_markets: 'Equities',
+      corporate_developments: 'Corporate',
+      fixed_income: 'Fixed Income',
+      regulation_policy: 'Regulation',
+      private_markets: 'Private Markets',
+    };
+
+    const ISSUERS = [
+      { ticker: 'SCOM', name: 'Safaricom PLC', sector: 'Telecommunications' },
+      { ticker: 'KCB', name: 'KCB Group PLC', sector: 'Banking' },
+      { ticker: 'EQTY', name: 'Equity Group Holdings PLC', sector: 'Banking' },
+      { ticker: 'COOP', name: 'Co-operative Bank of Kenya PLC', sector: 'Banking' },
+      { ticker: 'EABL', name: 'East African Breweries PLC', sector: 'Manufacturing & Allied' },
+      { ticker: 'KEGN', name: 'KenGen PLC', sector: 'Energy & Petroleum' },
+      { ticker: 'CTUM', name: 'Centum Investment Company PLC', sector: 'Investment' },
+      { ticker: 'KPLC', name: 'Kenya Power and Lighting PLC', sector: 'Energy & Petroleum' },
+      { ticker: 'KQ', name: 'Kenya Airways PLC', sector: 'Transport' },
+      { ticker: 'NCBA', name: 'NCBA Group PLC', sector: 'Banking' },
+      { ticker: 'ABSA', name: 'Absa Bank Kenya PLC', sector: 'Banking' },
+      { ticker: 'SCBK', name: 'Standard Chartered Kenya PLC', sector: 'Banking' },
+      { ticker: 'BAMB', name: 'Bamburi Cement PLC', sector: 'Construction' },
+      { ticker: 'SASN', name: 'Sasini PLC', sector: 'Agricultural' },
+      { ticker: 'KUKZ', name: 'Kakuzi PLC', sector: 'Agricultural' },
+      { ticker: 'BAT', name: 'BAT Kenya PLC', sector: 'Manufacturing' },
+    ];
+
+    const INSTITUTIONS = [
+      { code: 'CMA', name: 'Capital Markets Authority', role: 'Capital Markets Regulator', website: 'https://www.cma.or.ke' },
+      { code: 'CBK', name: 'Central Bank of Kenya', role: 'Monetary Authority & Debt Agent', website: 'https://www.centralbank.go.ke' },
+      { code: 'NSE', name: 'Nairobi Securities Exchange PLC', role: 'Securities Exchange', website: 'https://www.nse.co.ke' },
+      { code: 'CDSC', name: 'Central Depository & Settlement Corp.', role: 'Clearing & Settlement Depository', website: 'https://cdsckenya.com' },
+      { code: 'TREASURY', name: 'The National Treasury', role: 'Fiscal & Public Debt Authority', website: 'https://www.treasury.go.ke' },
+    ];
+
+    const NAV_PAGES = [
+      { id: 'frontpage', label: 'All News' },
+      { id: 'markets', label: 'Markets' },
+      { id: 'companies', label: 'Companies' },
+      { id: 'institutions', label: 'Institutions' },
+      { id: 'tools', label: 'Research & Tools' },
+      { id: 'saved', label: 'Saved & Alerts' },
+      { id: 'sources', label: 'Sources' }
+    ];
+
+    const STORAGE_KEY = 'kcmip_prototype_v5';
+    const PAGE_SIZE = 24;
+
+    let state = {
+      activePage: 'frontpage',
+      activeCategory: 'all',
+      filterTicker: 'all',
+      sortOrder: 'chronological',
+      searchQuery: '',
+      displayLimit: PAGE_SIZE,
+      currentPage: 1,
+      pageSize: PAGE_SIZE,
+      totalArticles: 0,
+      totalPages: 0,
+      watchlist: ['SCOM', 'KCB', 'EQTY', 'CMA', 'CBK'],
+      savedIds: [],
+      alerts: [
+        { id: 'AL-101', target: 'SCOM', condition: 'Interim/Final Dividend or Earnings Release', channel: 'Instant Push + Email', enabled: true },
+        { id: 'AL-102', target: 'CBK / CMA', condition: 'T-Bill/Bond Auctions & Regulatory Circulars', channel: 'Instant Push', enabled: true }
+      ],
+      cashFlows: [
+        { date: '2025-01-15', amount: -500000, note: 'Initial NSE Equity & IFB Allocation (KES)' },
+        { date: '2025-08-31', amount: 42500, note: 'Dividend / Coupon Inflow' },
+        { date: '2026-02-28', amount: 48000, note: 'Dividend / Coupon Inflow' },
+        { date: '2026-11-20', amount: 535000, note: 'Current Valuation / Proceeds' }
+      ],
+      articles: [],
+      sources: [],
+      health: null,
+      loading: true,
+      refreshing: false,
+      error: null,
+      currentArticleId: null,
+      currentIssuerTicker: null,
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          ['watchlist', 'savedIds', 'alerts', 'cashFlows'].forEach(k => {
+            if (p[k] !== undefined) state[k] = p[k];
+          });
+        }
+      } catch (e) {}
+    }
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          watchlist: state.watchlist,
+          savedIds: state.savedIds,
+          alerts: state.alerts,
+          cashFlows: state.cashFlows
+        }));
+      } catch (e) {}
+    }
+
+    async function fetchJSON(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    }
+
+    function normalizeArticle(a) {
+      return {
+        id: a.id,
+        title: a.title,
+        sourceName: a.sourceName,
+        category: a.category,
+        categoryLabel: CATEGORY_LABELS[a.category] || 'Markets',
+        relativeTime: a.relativeTime,
+        publishedAt: a.publishedAt,
+        collectedAt: a.collectedAt,
+        excerpt: a.summary || '',
+        contentHtml: a.contentHtml || null,
+        rewrittenHtml: a.rewrittenHtml || null,
+        rewriteMethod: a.rewriteMethod || null,
+        byline: a.byline || null,
+        wordCount: a.wordCount || 0,
+        readingTimeMinutes: a.readingTimeMinutes || 0,
+        fullTextStatus: a.fullTextStatus || 'pending',
+        tickers: Array.isArray(a.tickers) ? a.tickers : [],
+        institutions: Array.isArray(a.institutions) ? a.institutions : [],
+        imageUrl: a.imageUrl || null,
+        sourceUrl: a.originalUrl,
+        importance: a.importance || 50,
+        rights: a.contentAccess,
+      };
+    }
+
+    function newsQueryString() {
+      const params = new URLSearchParams();
+      params.set('limit', String(state.pageSize));
+      params.set('offset', String((state.currentPage - 1) * state.pageSize));
+      if (state.activeCategory && state.activeCategory !== 'all') params.set('category', state.activeCategory);
+      if (state.filterTicker && state.filterTicker !== 'all') params.set('ticker', state.filterTicker);
+      if (state.searchQuery && state.searchQuery.trim()) params.set('q', state.searchQuery.trim());
+      return params.toString();
+    }
+
+    async function fetchAll() {
+      state.loading = state.articles.length === 0;
+      state.error = null;
+      renderApp();
+      try {
+        const [newsData, srcData, healthData] = await Promise.all([
+          fetchJSON('/api/news?' + newsQueryString()),
+          fetchJSON('/api/sources').catch(() => ({ sources: [] })),
+          fetchJSON('/api/health').catch(() => null),
+        ]);
+        state.articles = (newsData.articles || []).map(normalizeArticle);
+        state.totalArticles = newsData.total || 0;
+        state.totalPages = Math.max(1, Math.ceil(state.totalArticles / state.pageSize));
+        if (state.currentPage > state.totalPages) state.currentPage = state.totalPages;
+        state.sources = srcData.sources || [];
+        state.health = healthData;
+        state.loading = false;
+        populateTickerFilter();
+        updateLiveStats();
+      } catch (e) {
+        state.error = e.message || 'Failed to load market data';
+        state.loading = false;
+      }
+      renderApp();
+    }
+
+    async function refreshNews() {
+      if (state.refreshing) return;
+      state.refreshing = true;
+      state.currentPage = 1;
+      showToast('Running ingestion sync…');
+      try {
+        await fetch('/api/v1/ingest', { method: 'POST' }).catch(() => null);
+        const data = await fetchJSON('/api/news?' + newsQueryString());
+        state.articles = (data.articles || []).map(normalizeArticle);
+        state.totalArticles = data.total || 0;
+        state.totalPages = Math.max(1, Math.ceil(state.totalArticles / state.pageSize));
+        populateTickerFilter();
+        updateLiveStats();
+        showToast(`${state.articles.length} articles loaded`);
+        renderApp();
+      } catch (e) {
+        showToast(`Refresh failed: ${e.message}`);
+      } finally {
+        state.refreshing = false;
+      }
+    }
+
+    function updateLiveStats() {
+      const a = document.getElementById('stat-articles');
+      const s = document.getElementById('stat-sources');
+      const f = document.getElementById('footer-stat');
+      const enabled = state.sources.filter(x => x.enabled).length;
+      if (a) a.textContent = `${state.articles.length} articles`;
+      if (s) s.textContent = `${enabled}/${state.sources.length} sources`;
+      if (f) f.textContent = `${state.articles.length} ARTICLES · ${state.sources.length} SOURCES`;
+    }
+
+    function populateTickerFilter() {
+      const sel = document.getElementById('filter-ticker');
+      if (!sel) return;
+      const tickers = new Set();
+      state.articles.forEach(a => a.tickers.forEach(t => tickers.add(t)));
+      ISSUERS.forEach(i => tickers.add(i.ticker));
+      const sorted = Array.from(tickers).sort();
+      const current = sel.value || 'all';
+      sel.innerHTML = '<option value="all">All NSE Issuers</option>' +
+        sorted.map(t => {
+          const iss = ISSUERS.find(i => i.ticker === t);
+          return `<option value="${t}">${t}${iss ? ' · ' + iss.name : ''}</option>`;
+        }).join('');
+      sel.value = current;
+    }
+
+    function formatEAT(iso) {
+      try {
+        return new Date(iso).toLocaleString('en-GB', {
+          timeZone: 'Africa/Nairobi',
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        }) + ' EAT';
+      } catch (e) { return iso; }
+    }
+
+    function timeAgo(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      return `${Math.floor(hrs / 24)}d ago`;
+    }
+
+    function sourceByline(art, extra = '') {
+      return `<span class="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">${art.sourceName}${extra ? ' · ' + extra : ''}</span>`;
+    }
+
+    function hasActiveFilters() {
+      return state.activeCategory !== 'all' || state.filterTicker !== 'all' || state.searchQuery.trim() !== '';
+    }
+
+    function getFilteredArticles() {
+      let list = [...state.articles];
+      if (state.activeCategory !== 'all') list = list.filter(a => a.category === state.activeCategory);
+      if (state.filterTicker !== 'all') list = list.filter(a => a.tickers.includes(state.filterTicker));
+      if (state.searchQuery.trim()) {
+        const q = state.searchQuery.toLowerCase();
+        list = list.filter(a =>
+          a.title.toLowerCase().includes(q) ||
+          a.sourceName.toLowerCase().includes(q) ||
+          (a.excerpt || '').toLowerCase().includes(q) ||
+          a.tickers.some(t => t.toLowerCase().includes(q)) ||
+          a.institutions.some(i => i.toLowerCase().includes(q))
+        );
+      }
+      if (state.sortOrder === 'chronological') {
+        list.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+      } else {
+        list.sort((a, b) => b.importance - a.importance);
+      }
+      return list;
+    }
+
+    function getRelatedArticles(art, limit = 4) {
+      const tick = new Set(art.tickers);
+      const inst = new Set(art.institutions);
+      return state.articles
+        .filter(a => a.id !== art.id)
+        .map(a => {
+          let score = 0;
+          a.tickers.forEach(t => { if (tick.has(t)) score += 2; });
+          a.institutions.forEach(i => { if (inst.has(i)) score += 1; });
+          if (a.category === art.category) score += 1;
+          return { a, score };
+        })
+        .filter(x => x.score > 0)
+        .sort((x, y) => y.score - x.score)
+        .slice(0, limit)
+        .map(x => x.a);
+    }
+
+    // Branded header for cards without a source image — a design element,
+    // not a placeholder pretending to be a photograph.
+    function noImageHeader(art, tall) {
+      return `
+        <div class="${tall ? 'aspect-video' : 'aspect-video'} bg-gradient-to-br from-[#0B0B0C] via-[#14161B] to-[#1F242D] relative overflow-hidden flex items-end">
+          <div class="absolute inset-0 opacity-[0.06]" style="background-image: repeating-linear-gradient(45deg, #fff 0 1px, transparent 1px 12px);"></div>
+          <div class="relative p-5">
+            <div class="text-[10px] font-mono uppercase tracking-wider text-[#FF4D1C] font-bold mb-1">${art.categoryLabel}</div>
+            <div class="font-display font-bold text-sm text-white/90">${art.sourceName}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function articleImage(art) {
+      if (!art.imageUrl) return null;
+      return `<img src="${art.imageUrl.replace(/"/g, '&quot;')}"
+        alt="${art.title.replace(/"/g, '&quot;')}"
+        loading="lazy"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" />`;
+    }
+
+    function renderCategoryTabsBar() {
+      const cats = ['all', 'equity_markets', 'corporate_developments', 'fixed_income', 'regulation_policy', 'private_markets'];
+      return `
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          ${cats.map(id => {
+            const active = state.activeCategory === id;
+            return `<button onclick="setFilter('activeCategory', '${id}')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${active ? 'bg-[#0B0B0C] text-white dark:bg-[#FF4D1C]' : 'bg-[#F5F5F7] dark:bg-zinc-900 text-[#5F6368] dark:text-zinc-400 hover:text-[#111315] dark:hover:text-white'}">${CATEGORY_LABELS[id]}</button>`;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function renderGridCard(art) {
+      const isSaved = state.savedIds.includes(art.id);
+      const img = articleImage(art);
+      return `
+        <article onclick="openArticlePage('${art.id}')" class="group rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] overflow-hidden flex flex-col justify-between hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer">
+          <div>
+            <div class="aspect-video w-full overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 relative">
+              ${img || noImageHeader(art)}
+            </div>
+            <div class="p-5">
+              <div class="flex items-center gap-2 text-xs mb-2 flex-wrap">
+                <span class="font-semibold text-[#FF4D1C]">${art.categoryLabel}</span>
+                <span class="text-zinc-400">·</span>
+                <span class="text-[#5F6368] dark:text-zinc-400">${art.relativeTime}</span>
+                <span class="text-zinc-400">·</span>
+                ${sourceByline(art)}
+              </div>
+              <h3 class="font-display font-bold text-lg leading-snug text-[#111315] dark:text-white group-hover:text-[#FF4D1C] transition-colors line-clamp-2">${art.title}</h3>
+              <p class="mt-2 text-xs text-[#5F6368] dark:text-zinc-400 leading-relaxed line-clamp-2">${art.excerpt || 'Open to read summary and source link.'}</p>
+            </div>
+          </div>
+          <div class="px-5 py-3 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${art.tickers.length
+                ? art.tickers.slice(0, 3).map(t => `<span class="px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[11px] font-semibold">NSE:${t}</span>`).join('')
+                : `<span class="text-[11px] text-zinc-400 font-mono">KE · KES</span>`}
+            </div>
+            <button onclick="event.stopPropagation(); toggleSaveArticle('${art.id}')" class="font-semibold ${isSaved ? 'text-[#FF4D1C]' : 'text-zinc-500 hover:text-[#111315] dark:hover:text-white'}">${isSaved ? 'Saved' : '+ Save'}</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderSkeleton() {
+      return `
+        <div class="space-y-10">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-7 space-y-4">
+              <div class="skeleton h-4 w-40 rounded"></div>
+              <div class="skeleton h-10 w-full rounded"></div>
+              <div class="skeleton h-10 w-4/5 rounded"></div>
+              <div class="skeleton aspect-video w-full rounded-2xl"></div>
+            </div>
+            <div class="lg:col-span-5 space-y-6">
+              ${[1,2,3].map(() => `
+                <div class="flex gap-4">
+                  <div class="flex-1 space-y-2">
+                    <div class="skeleton h-4 w-full rounded"></div>
+                    <div class="skeleton h-4 w-3/4 rounded"></div>
+                    <div class="skeleton h-3 w-1/2 rounded"></div>
+                  </div>
+                  <div class="skeleton w-32 aspect-[4/3] rounded-xl"></div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${[1,2,3,4,5,6].map(() => `
+              <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 overflow-hidden">
+                <div class="skeleton aspect-video"></div>
+                <div class="p-5 space-y-2">
+                  <div class="skeleton h-3 w-24 rounded"></div>
+                  <div class="skeleton h-5 w-full rounded"></div>
+                  <div class="skeleton h-3 w-3/4 rounded"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderErrorState() {
+      return `
+        <div class="py-20 text-center rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900/50 space-y-4 max-w-xl mx-auto">
+          <div class="inline-flex w-12 h-12 rounded-full bg-[#FF4D1C]/10 text-[#FF4D1C] items-center justify-center">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5 19h14a2 2 0 0 0 1.84-2.75L13.84 4a2 2 0 0 0-3.68 0L3.16 16.25A2 2 0 0 0 5 19z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-lg">Could not load market intelligence</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">${state.error || 'Unknown error'}</p>
+          </div>
+          <button onclick="fetchAll()" class="px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Retry</button>
+        </div>
+      `;
+    }
+
+    function renderEmptyState(msg) {
+      return `
+        <div class="py-16 text-center rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900/50 space-y-3">
+          <p class="font-display font-bold text-lg">${msg}</p>
+          <button onclick="resetFilters()" class="px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Reset Filters</button>
+        </div>
+      `;
+    }
+
+    function renderLoadMore(shown, total) {
+      if (shown >= total) {
+        return total > PAGE_SIZE ? `<div class="text-center pt-4 text-xs font-mono text-zinc-500">Showing all ${total} articles</div>` : '';
+      }
+      return `
+        <div class="flex justify-center pt-6">
+          <button onclick="showMoreArticles()" class="px-6 py-3 rounded-xl bg-[#0B0B0C] dark:bg-zinc-800 text-white font-display font-bold text-sm hover:opacity-90 transition-opacity">
+            Load ${Math.min(PAGE_SIZE, total - shown)} more articles
+            <span class="ml-2 text-zinc-400 font-mono text-xs">${shown} / ${total}</span>
+          </button>
+        </div>
+      `;
+    }
+
+    function renderArticlePage() {
+      const art = state.articles.find(a => a.id === state.currentArticleId);
+      if (!art) return renderEmptyState('Article not found.');
+
+      const isSaved = state.savedIds.includes(art.id);
+      const related = getRelatedArticles(art, 4);
+      const hasImage = Boolean(art.imageUrl);
+
+      const isOfficial = art.rights === 'official_disclosure' || art.rights === 'licensed_full_text';
+      const hasFullText = Boolean(art.contentHtml && art.contentHtml.trim().length > 60);
+      const hasRewrite = Boolean(art.rewrittenHtml && art.rewrittenHtml.trim().length > 60);
+
+      let bodyHtml = '';
+      let attributionNote = '';
+
+      if (hasFullText) {
+        let summaryBanner = '';
+        if (hasRewrite) {
+          summaryBanner = `
+            <div class="mb-6 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/20 text-xs">
+              <div class="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2 mb-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#FF4D1C]"></span>
+                Intelligence Briefing (${art.rewriteMethod === 'extractive' ? 'Extractive Summary' : 'AI Analysis'})
+              </div>
+              <div class="text-amber-950/90 dark:text-amber-200/90 leading-relaxed text-sm">${art.rewrittenHtml}</div>
+            </div>`;
+        }
+        bodyHtml = `
+          ${summaryBanner}
+          <div class="article-body prose prose-lg dark:prose-invert max-w-none">${art.contentHtml}</div>
+        `;
+        attributionNote = `
+          <div class="mt-8 p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900/60 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-[#111315] dark:text-white">Article Source: ${art.sourceName}</div>
+              <p class="mt-0.5 text-[#5F6368] dark:text-zinc-400">Published report extracted from ${art.sourceName}.</p>
+            </div>
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold hover:bg-[#E03D10] transition-colors">Read on ${art.sourceName} &nearr;</a>
+          </div>`;
+      } else if (hasRewrite) {
+        bodyHtml = `
+          <div class="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            ${art.rewriteMethod === 'extractive' ? 'Extractive summary' : 'AI-rewritten summary'}
+          </div>
+          <div class="article-body prose prose-lg dark:prose-invert max-w-none">${art.rewrittenHtml}</div>`;
+        attributionNote = `
+          <div class="mt-8 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-amber-800 dark:text-amber-300">Summary Coverage · ${art.sourceName}</div>
+              <p class="mt-0.5 text-amber-900/80 dark:text-amber-200/80">
+                For the complete article and original formatting, read directly on ${art.sourceName}.
+              </p>
+            </div>
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Read at ${art.sourceName} &nearr;</a>
+          </div>`;
+      } else {
+        bodyHtml = `
+          <div class="article-body prose prose-lg dark:prose-invert max-w-none">
+            <p class="text-lg leading-relaxed text-[#111315] dark:text-zinc-200">${art.excerpt || 'Article summary available on the publisher website.'}</p>
+          </div>`;
+        attributionNote = `
+          <div class="mt-8 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-amber-800 dark:text-amber-300">Source: ${art.sourceName}</div>
+              <p class="mt-0.5 text-amber-900/80 dark:text-amber-200/80">
+                ${art.fullTextStatus === 'paywalled'
+                  ? `${art.sourceName} places this piece behind a paywall.`
+                  : art.fullTextStatus === 'blocked'
+                  ? `${art.sourceName} limits automated retrieval.`
+                  : `Full text pending retrieval.`}
+              </p>
+            </div>
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Read at ${art.sourceName} &nearr;</a>
+          </div>`;
+      }
+
+      return `
+        <div class="max-w-3xl mx-auto">
+          <div class="flex items-center justify-between gap-3 mb-8">
+            <button onclick="navigateTo('frontpage')" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#FF4D1C]">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              Back to feed
+            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleSaveArticle('${art.id}'); navigateTo('article');" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-xs font-semibold ${isSaved ? 'text-[#FF4D1C] border-[#FF4D1C]' : 'text-zinc-500'}">${isSaved ? 'Saved' : '+ Save'}</button>
+              <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Open original &nearr;</a>
+            </div>
+          </div>
+
+          <article>
+            <header class="space-y-4 ${hasImage ? '' : 'pb-6 border-b border-[#E5E7EB] dark:border-zinc-800'}">
+              <div class="flex items-center gap-2 text-xs font-medium flex-wrap">
+                <span class="font-semibold text-[#FF4D1C]">${art.categoryLabel}</span>
+                <span class="text-zinc-300 dark:text-zinc-600">·</span>
+                <span class="text-[#5F6368] dark:text-zinc-400">${art.relativeTime}</span>
+                <span class="text-zinc-300 dark:text-zinc-600">·</span>
+                <span class="text-[11px] text-zinc-400 dark:text-zinc-500">${art.sourceName}</span>
+                ${art.readingTimeMinutes ? `<span class="text-zinc-300 dark:text-zinc-600">·</span><span class="text-[11px] text-zinc-400 dark:text-zinc-500">${art.readingTimeMinutes} min read</span>` : ''}
+              </div>
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-[44px] leading-[1.1] tracking-[-0.03em] text-[#111315] dark:text-white">${art.title}</h1>
+              ${art.byline ? `<div class="text-sm text-zinc-500 dark:text-zinc-400">By ${art.byline}</div>` : ''}
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px] text-zinc-500">
+                <span>Published: <strong class="text-[#111315] dark:text-zinc-200">${formatEAT(art.publishedAt)}</strong></span>
+                ${art.wordCount ? `<span>${art.wordCount.toLocaleString()} words</span>` : ''}
+              </div>
+            </header>
+
+            ${hasImage
+              ? `<figure class="mt-8 rounded-2xl overflow-hidden border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900">
+                   <div class="aspect-video w-full overflow-hidden">
+                     <img src="${art.imageUrl.replace(/"/g, '&quot;')}"
+                          alt="${art.title.replace(/"/g, '&quot;')}"
+                          class="w-full h-full object-cover"
+                          onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" />
+                   </div>
+                 </figure>`
+              : `<div class="mt-8 border-t border-[#E5E7EB] dark:border-zinc-800"></div>`}
+
+            <div class="mt-8">
+              ${bodyHtml}
+              ${attributionNote}
+            </div>
+          </article>
+
+          ${related.length ? `
+            <section class="mt-12 space-y-4">
+              <h2 class="font-display font-bold text-xl tracking-tight">Related Coverage (${related.length})</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                ${related.map(rel => `
+                  <div onclick="openArticlePage('${rel.id}')" class="p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 hover:border-[#FF4D1C] cursor-pointer flex gap-3 bg-white dark:bg-[#12141A]">
+                    ${rel.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${rel.imageUrl.replace(/"/g, '&quot;')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" /></div>` : ''}
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[10px] text-zinc-400 dark:text-zinc-500">${rel.sourceName} · ${rel.relativeTime}</div>
+                      <div class="text-xs font-semibold mt-0.5 line-clamp-2">${rel.title}</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderFrontpage() {
+      if (state.loading) return renderSkeleton();
+      if (state.error) return renderErrorState();
+
+      const filtered = getFilteredArticles();
+
+      if (hasActiveFilters()) {
+        const visible = filtered.slice(0, state.displayLimit);
+        return `
+          <div class="space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB] dark:border-zinc-800">
+              <div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-[#FF4D1C]">Filtered Intelligence Feed</div>
+                <h1 class="font-display font-extrabold text-2xl sm:text-3xl tracking-tight mt-0.5">${filtered.length} Matching ${filtered.length === 1 ? 'Article' : 'Articles'}</h1>
+              </div>
+              <button onclick="resetFilters()" class="px-3.5 py-2 rounded-lg bg-[#0B0B0C] dark:bg-zinc-800 text-white text-xs font-semibold">Reset Filters</button>
+            </div>
+            ${renderCategoryTabsBar()}
+            ${filtered.length === 0
+              ? renderEmptyState('No matching Kenyan market articles.')
+              : `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${visible.map(renderGridCard).join('')}</div>
+                ${renderLoadMore(visible.length, filtered.length)}
+              `}
+          </div>
+        `;
+      }
+
+      if (state.articles.length === 0) {
+        return `
+          <div class="py-20 text-center rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900/50 space-y-4 max-w-xl mx-auto">
+            <div class="inline-flex w-12 h-12 rounded-full bg-[#FF4D1C]/10 text-[#FF4D1C] items-center justify-center">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg>
+            </div>
+            <div>
+              <h3 class="font-display font-bold text-lg">No articles ingested yet</h3>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Run the ingestion sync to pull the latest Kenyan market news.</p>
+            </div>
+            <button onclick="refreshNews()" class="px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Run Ingestion Sync</button>
+          </div>
+        `;
+      }
+
+      const articles = state.articles.slice();
+      const lead = articles[0];
+      const rest = articles.slice(1);
+      const leadImg = articleImage(lead);
+
+      return `
+        <div class="space-y-10 sm:space-y-12">
+          <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-9 items-start">
+            <article onclick="openArticlePage('${lead.id}')" class="lg:col-span-6 xl:col-span-7 group cursor-pointer">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-full bg-[#0B0B0C] dark:bg-zinc-800 text-white flex items-center justify-center font-display font-extrabold text-xs shrink-0">
+                  ${lead.sourceName.slice(0, 2).toUpperCase()}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold truncate">${lead.sourceName}</div>
+                  <div class="text-[11px] text-[#5F6368] dark:text-zinc-400 truncate">${lead.categoryLabel} · ${lead.relativeTime}</div>
+                </div>
+              </div>
+              <h1 class="font-display font-extrabold text-3xl sm:text-4xl xl:text-[42px] leading-[1.12] tracking-[-0.025em] group-hover:text-[#FF4D1C] transition-colors">
+                ${lead.title}
+              </h1>
+              <div class="mt-3.5 flex flex-wrap items-center gap-2 text-xs font-medium">
+                <span class="font-semibold text-[#FF4D1C]">${lead.categoryLabel}</span>
+                <span class="text-zinc-400">·</span>
+                <span class="text-[#5F6368] dark:text-zinc-400">${lead.relativeTime}</span>
+                ${lead.tickers.slice(0, 2).map(t => `<span class="ml-1 px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[11px] font-semibold">NSE:${t}</span>`).join('')}
+              </div>
+              <div class="mt-5 rounded-2xl overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 aspect-video">
+                ${leadImg || noImageHeader(lead, true)}
+              </div>
+              <p class="mt-4 text-sm text-[#5F6368] dark:text-zinc-300 leading-relaxed line-clamp-3">${lead.excerpt}</p>
+              <a href="${lead.sourceUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="mt-3 inline-block px-3 py-1 rounded-lg bg-[#FF4D1C] text-white text-[10px] font-bold hover:bg-[#E03D10] transition-colors">Open original →</a>
+            </article>
+
+            <div class="lg:col-span-6 xl:col-span-5 divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+              ${rest.slice(0, 4).map((item, idx) => {
+                const itemImg = articleImage(item);
+                return `
+                  <article onclick="openArticlePage('${item.id}')" class="${idx === 0 ? 'pb-5' : idx === 3 ? 'pt-5' : 'py-5'} flex items-start justify-between gap-4 group cursor-pointer">
+                    <div class="flex-1 min-w-0">
+                      <h2 class="font-display font-bold text-base sm:text-[17px] leading-snug tracking-[-0.01em] group-hover:text-[#FF4D1C] transition-colors line-clamp-2">${item.title}</h2>
+                      <p class="mt-1.5 text-xs sm:text-[13px] text-[#5F6368] dark:text-zinc-400 leading-relaxed line-clamp-2">${item.excerpt}</p>
+                      <div class="mt-2.5 flex items-center gap-2 text-xs">
+                        <span class="font-semibold text-[#FF4D1C]">${item.categoryLabel}</span>
+                        <span class="text-zinc-400">·</span>
+                        <span class="text-[#5F6368] dark:text-zinc-400">${item.relativeTime}</span>
+                        <span class="text-zinc-400">·</span>
+                        ${sourceByline(item)}
+                      </div>
+                    </div>
+                    ${itemImg ? `
+                      <div class="w-28 sm:w-36 aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0">
+                        ${itemImg}
+                      </div>
+                    ` : ''}
+                  </article>
+                `;
+              }).join('')}
+            </div>
+          </section>
+
+          <section class="space-y-6 pt-2 border-t border-[#E5E7EB] dark:border-zinc-800">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <h2 class="font-display font-extrabold text-2xl sm:text-[26px] tracking-tight">
+                Latest Articles <span class="ml-2 font-mono text-sm font-normal text-zinc-500">${state.totalArticles}</span>
+              </h2>
+              <div class="inline-flex rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 p-0.5 border border-[#E5E7EB] dark:border-zinc-800 text-xs">
+                <button onclick="setSortOrder('chronological')" class="px-2.5 py-1 rounded-md font-medium ${state.sortOrder === 'chronological' ? 'bg-white dark:bg-zinc-800 shadow-2xs font-semibold' : 'text-zinc-500'}">Chronological</button>
+                <button onclick="setSortOrder('importance')" class="px-2.5 py-1 rounded-md font-medium ${state.sortOrder === 'importance' ? 'bg-white dark:bg-zinc-800 shadow-2xs font-semibold' : 'text-zinc-500'}">AI Priority</button>
+              </div>
+            </div>
+
+            ${renderCategoryTabsBar()}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${rest.slice(4).map(renderGridCard).join('')}
+            </div>
+            ${renderPagination()}
+          </section>
+        </div>
+      `;
+    }
+
+    function renderPagination() {
+      const page = state.currentPage;
+      const total = state.totalPages;
+      const from = Math.min((page - 1) * state.pageSize + 1, state.totalArticles);
+      const to = Math.min(page * state.pageSize, state.totalArticles);
+      const pages = [];
+      const maxVisible = 5;
+      let start = Math.max(1, page - Math.floor(maxVisible / 2));
+      let end = Math.min(total, start + maxVisible - 1);
+      if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+      for (let p = start; p <= end; p++) pages.push(p);
+
+      return `
+        <div class="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-[#E5E7EB] dark:border-zinc-800">
+          <div class="text-xs text-zinc-500 dark:text-zinc-400">
+            Showing <strong>${from}</strong> to <strong>${to}</strong> of <strong>${state.totalArticles}</strong> articles
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="prevPage()" ${page === 1 ? 'disabled' : ''}
+              class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] dark:border-zinc-700 bg-white dark:bg-[#12141A] text-xs font-semibold ${page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#FF4D1C] hover:text-white transition-colors'}">
+              Prev
+            </button>
+            ${pages.map(p => `
+              <button onclick="setPage(${p})"
+                class="w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center ${p === page ? 'bg-[#FF4D1C] text-white' : 'bg-white dark:bg-[#12141A] border border-[#E5E7EB] dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors'}">
+                ${p}
+              </button>
+            `).join('')}
+            <button onclick="nextPage()" ${page === total ? 'disabled' : ''}
+              class="px-3 py-1.5 rounded-lg border border-[#E5E7EB] dark:border-zinc-700 bg-white dark:bg-[#12141A] text-xs font-semibold ${page === total ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#FF4D1C] hover:text-white transition-colors'}">
+              Next
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMarketsPage() {
+      if (state.loading) return renderSkeleton();
+      if (state.error) return renderErrorState();
+
+      const marketArticles = state.articles.filter(a =>
+        ['fixed_income', 'equity_markets', 'corporate_developments'].includes(a.category)
+      );
+
+      const tickerCounts = {};
+      state.articles.forEach(a => a.tickers.forEach(t => { tickerCounts[t] = (tickerCounts[t] || 0) + 1; }));
+      const topTickers = Object.entries(tickerCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+      return `
+        <div class="space-y-8">
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Markets &amp; Corporate Actions</span>
+              <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Event Intelligence</h1>
+              <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">Live Kenyan market events aggregated from ${state.sources.length} registered sources.</p>
+            </div>
+            <button onclick="refreshNews()" class="px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Run Ingestion Sync</button>
+          </div>
+
+          ${topTickers.length ? `
+          <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
+            <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-500 mb-3">Most Active Issuers</div>
+            <div class="flex flex-wrap gap-2">
+              ${topTickers.map(([t, n]) => `
+                <button onclick="setFilter('filterTicker', '${t}')" class="px-3 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 hover:bg-[#FF4D1C]/10 font-mono text-xs font-bold flex items-center gap-2">
+                  NSE:${t}
+                  <span class="text-[10px] text-zinc-500">${n}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${marketArticles.length === 0
+            ? renderEmptyState('No market events ingested yet. Run an ingestion sync to populate this view.')
+            : `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${marketArticles.slice(0, 24).map(renderGridCard).join('')}</div>`}
+        </div>
+      `;
+    }
+
+    function renderCompaniesPage() {
+      if (state.loading) return renderSkeleton();
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">NSE Listed Issuers</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Company Intelligence Profiles</h1>
+            <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">Reference list of NSE issuers with linked coverage. Not a licensed live price feed.</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${ISSUERS.map(iss => {
+              const followed = state.watchlist.includes(iss.ticker);
+              const count = state.articles.filter(a => a.tickers.includes(iss.ticker)).length;
+              return `
+                <div onclick="openIssuerPage('${iss.ticker}')" class="p-5 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="px-2.5 py-1 rounded-md bg-[#0B0B0C] dark:bg-zinc-800 text-white font-mono text-xs font-bold">NSE:${iss.ticker}</span>
+                      <button onclick="event.stopPropagation(); toggleWatchlist('${iss.ticker}')" class="px-2.5 py-1 rounded-md text-xs font-semibold border ${followed ? 'bg-[#FF4D1C] text-white border-[#FF4D1C]' : 'border-zinc-300 dark:border-zinc-700'}">${followed ? 'Following' : '+ Follow'}</button>
+                    </div>
+                    <h3 class="font-display font-bold text-lg mt-3">${iss.name}</h3>
+                    <div class="text-xs text-zinc-500 mt-0.5">${iss.sector}</div>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between text-xs">
+                    <span class="text-zinc-500">Linked coverage</span>
+                    <span class="font-mono font-bold">${count} ${count === 1 ? 'article' : 'articles'}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderIssuerPage() {
+      const iss = ISSUERS.find(i => i.ticker === state.currentIssuerTicker);
+      if (!iss) return renderEmptyState('Issuer not found.');
+      const followed = state.watchlist.includes(iss.ticker);
+      const linked = state.articles.filter(a => a.tickers.includes(iss.ticker));
+
+      return `
+        <div class="max-w-3xl mx-auto space-y-6">
+          <button onclick="navigateTo('companies')" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#FF4D1C] transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            Back to companies
+          </button>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="px-2.5 py-1 rounded-md bg-[#0B0B0C] text-white font-mono text-xs font-bold">NSE:${iss.ticker}</span>
+              <h1 class="font-display font-extrabold text-3xl tracking-tight mt-3">${iss.name}</h1>
+              <div class="text-xs font-mono text-zinc-500 mt-1">${iss.sector}</div>
+            </div>
+            <button onclick="toggleWatchlist('${iss.ticker}'); navigateTo('issuer');" class="px-3 py-1.5 rounded-lg text-xs font-bold ${followed ? 'bg-[#FF4D1C] text-white' : 'border border-zinc-300 dark:border-zinc-700'}">${followed ? 'Following' : '+ Follow'}</button>
+          </div>
+          <div class="space-y-3">
+            <h2 class="font-display font-bold text-sm">Linked Coverage (${linked.length})</h2>
+            ${linked.length === 0
+              ? `<p class="text-sm text-zinc-500">No articles ingested yet for this issuer.</p>`
+              : linked.map(art => `
+                <div onclick="openArticlePage('${art.id}')" class="p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 hover:border-[#FF4D1C] cursor-pointer flex gap-3 bg-white dark:bg-[#12141A]">
+                  ${art.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${art.imageUrl.replace(/"/g, '&quot;')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" /></div>` : ''}
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500">${art.sourceName} · ${art.relativeTime}</div>
+                    <div class="text-xs font-semibold mt-0.5 line-clamp-2">${art.title}</div>
+                  </div>
+                </div>
+              `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInstitutionsPage() {
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Regulators &amp; Market Infrastructure</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">CMA, CBK, NSE, CDSC &amp; National Treasury</h1>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            ${INSTITUTIONS.map(inst => {
+              const count = state.articles.filter(a => a.institutions.includes(inst.code)).length;
+              return `
+                <div class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+                  <div class="flex items-center justify-between">
+                    <span class="px-3 py-1 rounded-lg bg-[#0B0B0C] dark:bg-zinc-800 text-white font-mono text-xs font-bold">${inst.code}</span>
+                    <a href="${inst.website}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[#FF4D1C] hover:underline">Official Site &nearr;</a>
+                  </div>
+                  <div>
+                    <h2 class="font-display font-bold text-xl">${inst.name}</h2>
+                    <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">${inst.role}</div>
+                  </div>
+                  <div class="pt-3 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between text-xs">
+                    <span class="text-zinc-500">Linked coverage</span>
+                    <span class="font-mono font-bold">${count} ${count === 1 ? 'article' : 'articles'}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function computeXIRR(flows) {
+      if (!flows || flows.length < 2) return null;
+      const valid = flows.filter(f => f.date && !isNaN(f.amount) && f.amount !== 0);
+      if (valid.length < 2 || !valid.some(f => f.amount > 0) || !valid.some(f => f.amount < 0)) return null;
+      const sorted = [...valid].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const t0 = new Date(sorted[0].date).getTime();
+      const yearMs = 365.0 * 24 * 60 * 60 * 1000;
+      const times = sorted.map(f => (new Date(f.date).getTime() - t0) / yearMs);
+      const amounts = sorted.map(f => Number(f.amount));
+      let r = 0.12;
+      for (let i = 0; i < 60; i++) {
+        let f = 0, df = 0;
+        for (let k = 0; k < amounts.length; k++) {
+          const d = Math.pow(1 + r, times[k]);
+          f += amounts[k] / d;
+          df -= (times[k] * amounts[k]) / (d * (1 + r));
+        }
+        if (Math.abs(f) < 1e-6) return r;
+        if (Math.abs(df) < 1e-10) break;
+        const next = r - f / df;
+        r = next <= -0.999 ? -0.5 : next;
+      }
+      return isFinite(r) ? r : null;
+    }
+
+    function renderToolsPage() {
+      const xirr = computeXIRR(state.cashFlows);
+      const netKes = state.cashFlows.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Research &amp; Tools</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">XIRR Solver, KES FX &amp; Withholding Tax Reckoner</h1>
+          </div>
+
+          <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="font-display font-bold text-xl">Dated-Cash-Flow XIRR Calculator (KES)</h2>
+                <p class="text-xs text-[#5F6368] dark:text-zinc-400">Negative values denote outflows; positive values denote dividends, coupons, or sale proceeds.</p>
+              </div>
+              <button onclick="addCashFlow()" class="px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white font-semibold text-xs">+ Add Cash Flow</button>
+            </div>
+
+            <div class="space-y-2">
+              ${state.cashFlows.map((cf, i) => `
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <input type="date" value="${cf.date}" onchange="editCashFlow(${i}, 'date', this.value)" class="col-span-4 sm:col-span-3 px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-xs" />
+                  <input type="number" value="${cf.amount}" onchange="editCashFlow(${i}, 'amount', parseFloat(this.value))" class="col-span-4 sm:col-span-3 px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-xs tabular" />
+                  <input type="text" value="${cf.note}" onchange="editCashFlow(${i}, 'note', this.value)" class="col-span-3 sm:col-span-5 px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 text-xs" />
+                  <button onclick="deleteCashFlow(${i})" class="col-span-1 text-xs font-mono text-zinc-400 hover:text-rose-600 text-center">✕</button>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900">
+                <div class="text-xs text-zinc-500">Annualised XIRR (ACT/365)</div>
+                <div class="font-display font-extrabold text-2xl mt-1 tabular ${xirr !== null && xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}">${xirr !== null ? (xirr * 100).toFixed(2) + '%' : 'Invalid'}</div>
+              </div>
+              <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900">
+                <div class="text-xs text-zinc-500">Net Cumulative Cash Flow</div>
+                <div class="font-display font-extrabold text-2xl mt-1 tabular">KES ${netKes.toLocaleString()}</div>
+              </div>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-lg">KES Currency Converter</h2>
+                <span class="px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[10px]">Indicative</span>
+              </div>
+              <input id="fx-amount" type="number" value="1000000" oninput="renderFXList()" class="w-full px-3.5 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-sm tabular" />
+              <div id="fx-results" class="divide-y divide-[#E5E7EB] dark:divide-zinc-800 font-mono text-xs tabular"></div>
+            </section>
+
+            <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-lg">After-Tax Yield Reckoner</h2>
+                <span class="px-2 py-0.5 rounded bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-[10px]">Kenya WHT</span>
+              </div>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs text-zinc-500 mb-1">Gross Yield (%)</label>
+                  <input id="wht-gross" type="number" step="0.05" value="12.48" oninput="renderWHTNet()" class="w-full px-3.5 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 font-mono text-sm tabular" />
+                </div>
+                <div>
+                  <label class="block text-xs text-zinc-500 mb-1">Instrument Tax Class</label>
+                  <select id="wht-tax" onchange="renderWHTNet()" class="w-full px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 text-xs">
+                    <option value="0.05">NSE Listed Equity Dividend (5% WHT)</option>
+                    <option value="0.15" selected>Treasury Bill / MMF / FXD Bond (15% WHT)</option>
+                    <option value="0.10">Treasury Bond &ge; 10 Years (10% WHT)</option>
+                    <option value="0.00">Infrastructure Bond IFB (0% Exempt)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900 flex items-center justify-between">
+                <span class="text-xs font-semibold text-zinc-500">Net After-Tax Yield</span>
+                <span id="wht-net-out" class="font-display font-extrabold text-2xl text-[#FF4D1C] tabular">10.61%</span>
+              </div>
+            </section>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSavedPage() {
+      const savedList = state.savedIds
+        .map(id => state.articles.find(a => a.id === id))
+        .filter(Boolean);
+      return `
+        <div class="space-y-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Saved &amp; Alerts</span>
+            <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Watchlist, Alerts &amp; Offline Library</h1>
+          </div>
+
+          <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-3">
+            <h2 class="font-display font-bold text-lg">Followed Issuers &amp; Regulators (${state.watchlist.length})</h2>
+            <div class="flex flex-wrap gap-2">
+              ${state.watchlist.length === 0
+                ? `<p class="text-sm text-zinc-500">No followed issuers yet.</p>`
+                : state.watchlist.map(sym => `
+                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 font-mono text-xs font-bold">
+                    <button onclick="openIssuerPage('${sym}')">${sym}</button>
+                    <button onclick="toggleWatchlist('${sym}')" class="text-zinc-400 hover:text-rose-600">✕</button>
+                  </span>
+                `).join('')}
+            </div>
+          </section>
+
+          <section class="p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-display font-bold text-lg">Alert Rules</h2>
+              <button onclick="addAlertRule()" class="px-3 py-1.5 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">+ Add Alert</button>
+            </div>
+            <div class="divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+              ${state.alerts.map(al => `
+                <div class="py-3 flex items-center justify-between gap-2 text-xs">
+                  <div>
+                    <span class="font-mono font-bold text-[#FF4D1C] mr-2">[${al.target}]</span>
+                    <span class="font-semibold">${al.condition}</span>
+                    <span class="text-zinc-500 ml-2">· ${al.channel}</span>
+                  </div>
+                  <button onclick="toggleAlert('${al.id}')" class="px-2.5 py-1 rounded-md font-semibold ${al.enabled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800'}">${al.enabled ? 'Active' : 'Paused'}</button>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <h2 class="font-display font-bold text-xl">Saved Offline Articles (${savedList.length})</h2>
+            ${savedList.length === 0
+              ? `<p class="text-sm text-zinc-500">No saved articles yet. Click "+ Save" on any article card.</p>`
+              : `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${savedList.map(renderGridCard).join('')}</div>`}
+          </section>
+        </div>
+      `;
+    }
+
+    function renderSourcesPage() {
+      if (state.loading) return renderSkeleton();
+      const enabled = state.sources.filter(s => s.enabled).length;
+      return `
+        <div class="space-y-8">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Source Registry</span>
+              <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Connectors &amp; Feed Health</h1>
+              <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">${enabled} of ${state.sources.length} sources enabled.</p>
+            </div>
+            <button onclick="refreshNews()" class="px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Run Ingestion Sync</button>
+          </div>
+
+          <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 overflow-x-auto bg-white dark:bg-[#12141A]">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900 font-semibold">
+                  <th class="py-3.5 px-5">Source</th>
+                  <th class="py-3.5 px-5">Feed</th>
+                  <th class="py-3.5 px-5 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+                ${state.sources.length === 0
+                  ? `<tr><td colspan="3" class="py-8 text-center text-zinc-500">No sources registered yet.</td></tr>`
+                  : state.sources.map(s => {
+                    const status = !s.enabled ? 'Disabled'
+                      : s.lastError ? `Failing (${s.consecutiveFailures})`
+                      : 'Operational';
+                    const statusCls = !s.enabled ? 'text-zinc-500'
+                      : s.lastError ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-emerald-600 dark:text-emerald-400';
+                    return `
+                      <tr>
+                        <td class="py-3.5 px-5 font-bold">${s.name}</td>
+                        <td class="py-3.5 px-5 font-mono text-[11px] text-zinc-500 truncate max-w-[260px]">${s.feedUrl || '—'}</td>
+                        <td class="py-3.5 px-5 text-right font-semibold ${statusCls}">${status}${s.lastSuccessAt ? ` · ${timeAgo(s.lastSuccessAt)}` : ''}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function addCashFlow() {
+      state.cashFlows.push({ date: '2026-12-31', amount: 18500, note: 'Dividend / Coupon Receipt' });
+      saveState();
+      renderApp();
+    }
+    function editCashFlow(idx, key, val) {
+      if (state.cashFlows[idx]) {
+        state.cashFlows[idx][key] = val;
+        saveState();
+        renderApp();
+      }
+    }
+    function deleteCashFlow(idx) {
+      if (state.cashFlows.length <= 2) { showToast('At least two dated cash flows required'); return; }
+      state.cashFlows.splice(idx, 1);
+      saveState();
+      renderApp();
+    }
+    function renderFXList() {
+      const el = document.getElementById('fx-amount');
+      const box = document.getElementById('fx-results');
+      if (!el || !box) return;
+      const kes = parseFloat(el.value) || 0;
+      const rates = [
+        { code: 'USD', name: 'US Dollar', rate: 1 / 129.20, dec: 2 },
+        { code: 'EUR', name: 'Euro', rate: 1 / 138.45, dec: 2 },
+        { code: 'GBP', name: 'British Pound', rate: 1 / 164.10, dec: 2 },
+        { code: 'UGX', name: 'Uganda Shilling', rate: 28.45, dec: 0 },
+        { code: 'TZS', name: 'Tanzania Shilling', rate: 20.65, dec: 0 }
+      ];
+      box.innerHTML = rates.map(r => `<div class="py-2.5 flex items-center justify-between"><span><strong>${r.code}</strong> <span class="text-zinc-400">(${r.name})</span></span><strong>${(kes * r.rate).toLocaleString(undefined, { minimumFractionDigits: r.dec, maximumFractionDigits: r.dec })} ${r.code}</strong></div>`).join('');
+    }
+    function renderWHTNet() {
+      const g = document.getElementById('wht-gross');
+      const t = document.getElementById('wht-tax');
+      const out = document.getElementById('wht-net-out');
+      if (!g || !t || !out) return;
+      out.textContent = ((parseFloat(g.value) || 0) * (1 - (parseFloat(t.value) || 0))).toFixed(2) + '%';
+    }
+
+    function renderTopNav() {
+      document.getElementById('top-nav-links').innerHTML = NAV_PAGES.map(p => {
+        const active = state.activePage === p.id;
+        const badge = p.id === 'saved' && state.savedIds.length
+          ? ` <span class="ml-1 px-1.5 py-0.2 rounded-full bg-[#FF4D1C] text-white text-[10px] font-mono">${state.savedIds.length}</span>`
+          : '';
+        return `<button onclick="navigateTo('${p.id}')" class="px-3 py-1.5 rounded-lg transition-colors ${active ? 'text-white bg-white/15 font-semibold' : 'text-zinc-300 hover:text-white hover:bg-white/5'}">${p.label}${badge}</button>`;
+      }).join('');
+
+      document.getElementById('mobile-nav-links').innerHTML = NAV_PAGES.map(p => {
+        const active = state.activePage === p.id;
+        return `<button onclick="navigateTo('${p.id}'); toggleMobileDrawer();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium ${active ? 'bg-[#FF4D1C] text-white font-bold' : 'text-zinc-300 hover:bg-white/10'}">${p.label}</button>`;
+      }).join('');
+    }
+
+    function navigateTo(page) {
+      state.activePage = page;
+      if (page !== 'article') state.currentArticleId = null;
+      if (page !== 'issuer') state.currentIssuerTicker = null;
+      renderTopNav();
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openArticlePage(id) {
+      location.href = 'article.html?id=' + encodeURIComponent(id);
+    }
+
+    function openIssuerPage(ticker) {
+      state.currentIssuerTicker = ticker;
+      state.activePage = 'issuer';
+      renderTopNav();
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleMobileDrawer() { document.getElementById('mobile-drawer').classList.toggle('hidden'); }
+    function toggleFilterBar() { document.getElementById('multi-filter-drawer').classList.toggle('hidden'); }
+
+    function setFilter(key, val) {
+      state[key] = val;
+      state.currentPage = 1;
+      if (state.activePage !== 'frontpage') {
+        state.activePage = 'frontpage';
+        renderTopNav();
+      }
+      fetchAll();
+    }
+
+    function setSortOrder(order) {
+      state.sortOrder = order;
+      state.currentPage = 1;
+      fetchAll();
+    }
+
+    function handleSearch(val) {
+      state.searchQuery = val;
+      state.currentPage = 1;
+      if (state.activePage !== 'frontpage') {
+        state.activePage = 'frontpage';
+        renderTopNav();
+      }
+      fetchAll();
+    }
+
+    function resetFilters() {
+      state.activeCategory = 'all';
+      state.filterTicker = 'all';
+      state.searchQuery = '';
+      state.currentPage = 1;
+      const inp = document.getElementById('global-search');
+      if (inp) inp.value = '';
+      ['filter-category', 'filter-ticker'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = 'all';
+      });
+      fetchAll();
+    }
+
+    function setPage(page) {
+      page = Math.max(1, Math.min(page, state.totalPages || 1));
+      if (page === state.currentPage) return;
+      state.currentPage = page;
+      fetchAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function prevPage() { setPage(state.currentPage - 1); }
+    function nextPage() { setPage(state.currentPage + 1); }
+
+    function showMoreArticles() { nextPage(); }
+
+    function toggleSaveArticle(id) {
+      const idx = state.savedIds.indexOf(id);
+      if (idx >= 0) {
+        state.savedIds.splice(idx, 1);
+        showToast('Removed from Saved Library');
+      } else {
+        state.savedIds.push(id);
+        showToast('Saved for Offline Reading');
+      }
+      saveState();
+      renderTopNav();
+      renderApp();
+    }
+
+    function toggleWatchlist(sym) {
+      const idx = state.watchlist.indexOf(sym);
+      if (idx >= 0) {
+        state.watchlist.splice(idx, 1);
+        showToast(`Unfollowed ${sym}`);
+      } else {
+        state.watchlist.push(sym);
+        showToast(`Following ${sym}`);
+      }
+      saveState();
+      renderApp();
+    }
+
+    function addAlertRule() {
+      state.alerts.unshift({
+        id: 'AL-' + Math.floor(200 + Math.random() * 700),
+        target: 'EABL / KEGN',
+        condition: 'Dividend or Corporate Filing',
+        channel: 'Instant Push + Email',
+        enabled: true
+      });
+      saveState();
+      renderApp();
+      showToast('Alert rule added');
+    }
+
+    function toggleAlert(id) {
+      const a = state.alerts.find(x => x.id === id);
+      if (a) {
+        a.enabled = !a.enabled;
+        saveState();
+        renderApp();
+      }
+    }
+
+    function openPricingModal() { document.getElementById('pricing-modal').classList.remove('hidden'); }
+    function closePricingModal() { document.getElementById('pricing-modal').classList.add('hidden'); }
+    function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.remove('opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.add('opacity-0'), 2500);
+    }
+
+    function renderApp() {
+      const root = document.getElementById('app-workspace');
+      switch (state.activePage) {
+        case 'frontpage': root.innerHTML = renderFrontpage(); break;
+        case 'markets': root.innerHTML = renderMarketsPage(); break;
+        case 'companies': root.innerHTML = renderCompaniesPage(); break;
+        case 'issuer': root.innerHTML = renderIssuerPage(); break;
+        case 'institutions': root.innerHTML = renderInstitutionsPage(); break;
+        case 'tools': root.innerHTML = renderToolsPage(); renderFXList(); renderWHTNet(); break;
+        case 'saved': root.innerHTML = renderSavedPage(); break;
+        case 'sources': root.innerHTML = renderSourcesPage(); break;
+        case 'article': root.innerHTML = renderArticlePage(); break;
+        default: root.innerHTML = renderFrontpage();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closePricingModal(); }
+    });
+
+    loadState();
+    renderTopNav();
+    fetchAll();
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markets — KC-MIP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#F5F5F7] text-[#111315]">
+
+  <header class="bg-[#0B0B0C] text-white sticky top-0 z-50 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-[#FF4D1C] flex items-center justify-center font-bold text-sm">K</span>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight">KC-MIP</span>
+          <span class="block text-[9px] mono uppercase tracking-widest text-zinc-400">Kenya Markets</span>
+        </div>
+      </a>
+      <nav class="flex items-center gap-1 text-sm font-medium">
+        <a href="/" class="px-3 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/5">All News</a>
+        <a href="/markets.html" class="px-3 py-1.5 rounded-lg bg-white/15 text-white font-semibold">Markets</a>
+        <a href="/companies.html" class="px-3 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/5">Companies</a>
+        <a href="/institutions.html" class="px-3 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/5">Institutions</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div>
+      <h1 class="text-2xl font-extrabold tracking-tight">Markets &amp; Treasury Auctions</h1>
+      <p class="text-sm text-gray-500 mt-1" id="disclaimer">Loading...</p>
+    </div>
+
+    <section class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-bold text-lg mb-3">Market Snapshot</h2>
+      <div id="indicators" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+    </section>
+
+    <section class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-bold text-lg mb-3">Recent Treasury Bill Auctions (CBK)</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="border-b border-gray-200 text-gray-500">
+            <tr>
+              <th class="py-2 pr-4">Tenor</th>
+              <th class="py-2 pr-4">Yield</th>
+              <th class="py-2 pr-4">Offered</th>
+              <th class="py-2 pr-4">Accepted</th>
+              <th class="py-2">Date</th>
+            </tr>
+          </thead>
+          <tbody id="auctions" class="mono"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl border border-gray-200 p-5">
+      <h2 class="font-bold text-lg mb-3">Latest Fixed-Income News</h2>
+      <div id="fi-news" class="space-y-3"></div>
+    </section>
+  </main>
+
+  <script>
+    async function load() {
+      const disclaimerEl = document.getElementById('disclaimer');
+      const indicatorsEl = document.getElementById('indicators');
+      const auctionsEl = document.getElementById('auctions');
+      const fiNewsEl = document.getElementById('fi-news');
+
+      // 1. Fixed-income news — this always works
+      try {
+        const newsRes = await fetch('/api/news?category=fixed_income');
+        const news = await newsRes.json();
+        const fiNews = news.articles || [];
+        fiNewsEl.innerHTML = fiNews.length
+          ? fiNews.slice(0, 10).map((a) => `
+              <a href="${a.originalUrl}" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-lg border border-gray-100 hover:border-[#FF4D1C] transition-colors">
+                <div class="text-xs text-gray-500 mb-1">${a.sourceName} · ${new Date(a.publishedAt).toLocaleDateString('en-KE')}</div>
+                <div class="font-semibold text-sm">${a.title}</div>
+              </a>
+            `).join('')
+          : '<p class="text-sm text-gray-400">No fixed-income articles in the current feed window.</p>';
+      } catch (e) {
+        fiNewsEl.innerHTML = '<p class="text-sm text-red-500">Failed to load news.</p>';
+      }
+
+      // 2. Market data — server returns 501 with available:false
+      try {
+        const mktRes = await fetch('/api/markets');
+        const mkt = await mktRes.json();
+
+        if (!mkt.available) {
+          disclaimerEl.textContent = mkt.reason || 'Market data not available.';
+          if (indicatorsEl) {
+            indicatorsEl.parentElement.innerHTML = `
+              <h2 class="font-bold text-lg mb-3">Market Snapshot</h2>
+              <div class="p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                <p class="font-semibold mb-2">Live market data is not configured.</p>
+                <p class="mb-3">${mkt.reason || ''}</p>
+                <p class="text-xs font-mono uppercase tracking-wider text-amber-700 mb-1">Verify against official sources:</p>
+                <ul class="space-y-1">
+                  ${(mkt.officialSources || []).map((s) =>
+                    `<li><a href="${s.url}" target="_blank" rel="noopener noreferrer" class="underline hover:text-amber-900">${s.name} ↗</a></li>`
+                  ).join('')}
+                </ul>
+              </div>
+            `;
+          }
+          if (auctionsEl) {
+            const auctionsSection = auctionsEl.closest('section');
+            if (auctionsSection) auctionsSection.remove();
+          }
+          return;
+        }
+
+        disclaimerEl.textContent = mkt.disclaimer || '';
+        indicatorsEl.innerHTML = (mkt.indicators || []).map((i) => `
+          <div class="p-3 rounded-lg bg-[#F5F5F7]">
+            <div class="text-xs text-gray-500">${i.name}</div>
+            <div class="font-extrabold text-xl mono mt-0.5">${i.value}</div>
+            <div class="text-xs mt-0.5 ${i.direction === 'up' ? 'text-emerald-600' : i.direction === 'down' ? 'text-rose-600' : 'text-gray-500'}">${i.change}</div>
+          </div>
+        `).join('');
+        auctionsEl.innerHTML = (mkt.treasuryActions || []).map((a) => `
+          <tr class="border-b border-gray-100">
+            <td class="py-2 pr-4 font-semibold">${a.tenor}</td>
+            <td class="py-2 pr-4 text-[#FF4D1C] font-bold">${a.yield}</td>
+            <td class="py-2 pr-4">${a.offered}</td>
+            <td class="py-2 pr-4">${a.accepted}</td>
+            <td class="py-2 text-gray-500">${a.date}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        disclaimerEl.textContent = 'Failed to load market data.';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
