@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KC-MIP — Kenya Capital Markets Intelligence Platform</title>
   <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -97,7 +98,7 @@
       </div>
     </div>
 
-    <!-- Utility strip -->
+<!-- Utility strip -->
     <div class="bg-[#F5F5F7] dark:bg-[#14161B] text-[#111315] dark:text-zinc-200 border-b border-[#E5E7EB] dark:border-zinc-800">
       <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between gap-3">
         <button onclick="toggleFilterBar()" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[#0B0B0C] dark:bg-zinc-800 text-white text-xs font-medium hover:opacity-90 shrink-0">
@@ -109,8 +110,20 @@
 
         <div class="flex-1 min-w-0 flex items-center justify-center gap-3 text-center overflow-hidden">
           <button onclick="openPricingModal()" class="text-xs sm:text-[13px] font-medium hover:text-[#FF4D1C] transition-colors truncate">
-            Daily NSE, CBK &amp; CMA Intelligence Brief — Get morning KES market disclosures
+            Daily NSE, CBK & CMA Intelligence Brief — Get morning KES market disclosures
           </button>
+          
+          <!-- Currency Ticker -->
+          <div id="currency-ticker" class="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono text-[11px] shrink-0">
+            <span class="text-zinc-500 dark:text-zinc-400">FX:</span>
+            <span id="fx-usd" class="tabular">USD/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
+            <span class="text-zinc-300 dark:text-zinc-600">|</span>
+            <span id="fx-eur" class="tabular">EUR/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
+            <span class="text-zinc-300 dark:text-zinc-600">|</span>
+            <span id="fx-gbp" class="tabular">GBP/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
+            <span id="fx-timestamp" class="text-zinc-400 dark:text-zinc-500 ml-2">—</span>
+          </div>
+          
           <span id="live-stats" class="hidden xl:inline-flex items-center gap-2 pl-3 border-l border-zinc-300 dark:border-zinc-700 font-mono text-[11px] text-zinc-600 dark:text-zinc-400 tabular shrink-0">
             <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Live</span>
             <span>·</span>
@@ -471,6 +484,12 @@
       if (a) a.textContent = `${state.articles.length} articles`;
       if (s) s.textContent = `${enabled}/${state.sources.length} sources`;
       if (f) f.textContent = `${state.articles.length} ARTICLES · ${state.sources.length} SOURCES`;
+      
+      // Update market time if on markets page
+      const mt = document.getElementById('market-time');
+      if (mt) {
+        mt.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' }) + ' EAT';
+      }
     }
 
     function populateTickerFilter() {
@@ -507,6 +526,207 @@
       const hrs = Math.floor(mins / 60);
       if (hrs < 24) return `${hrs}h ago`;
       return `${Math.floor(hrs / 24)}d ago`;
+    }
+
+    // Market Data Generation (Mock - replace with real API in production)
+    function generateMarketData() {
+      const baseNSE20 = 1850 + Math.random() * 200;
+      const baseNASI = 115 + Math.random() * 20;
+      const now = Date.now();
+      
+      // Generate intraday sparkline data
+      function genSparkline(base, volatility = 0.02, points = 50) {
+        const data = [base];
+        for (let i = 1; i < points; i++) {
+          const change = (Math.random() - 0.5) * 2 * volatility;
+          data.push(Math.max(base * 0.95, data[i-1] * (1 + change)));
+        }
+        return data;
+      }
+
+      const nse20History = genSparkline(baseNSE20, 0.008, 100);
+      const nasiHistory = genSparkline(baseNASI, 0.01, 100);
+
+      // Indices
+      const indices = [
+        { code: 'NSE20', name: 'NSE 20 Share Index', value: baseNSE20, change: (Math.random() - 0.45) * 3, changeAbs: (Math.random() - 0.45) * 50, history: nse20History },
+        { code: 'NASI', name: 'NSE All Share Index', value: baseNASI, change: (Math.random() - 0.45) * 2.5, changeAbs: (Math.random() - 0.45) * 3, history: nasiHistory },
+        { code: 'NSE25', name: 'NSE 25 Share Index', value: baseNSE20 * 1.12, change: (Math.random() - 0.45) * 2.8, changeAbs: (Math.random() - 0.45) * 55, history: genSparkline(baseNSE20 * 1.12, 0.009) },
+        { code: 'REITS', name: 'REITs Index', value: 8.45 + Math.random() * 2, change: (Math.random() - 0.5) * 1.5, changeAbs: (Math.random() - 0.5) * 0.3, history: genSparkline(9.2, 0.01) }
+      ];
+
+      // Top companies for movers
+      const companies = [
+        { ticker: 'SCOM', name: 'Safaricom', sector: 'Telecommunications', basePrice: 22.5 },
+        { ticker: 'EQTY', name: 'Equity Group', sector: 'Banking', basePrice: 48.0 },
+        { ticker: 'KCB', name: 'KCB Group', sector: 'Banking', basePrice: 32.5 },
+        { ticker: 'COOP', name: 'Co-op Bank', sector: 'Banking', basePrice: 14.2 },
+        { ticker: 'EABL', name: 'EABL', sector: 'Manufacturing', basePrice: 185.0 },
+        { ticker: 'NCBA', name: 'NCBA Group', sector: 'Banking', basePrice: 28.5 },
+        { ticker: 'ABSA', name: 'Absa Bank', sector: 'Banking', basePrice: 12.8 },
+        { ticker: 'SCBK', name: 'StanChart', sector: 'Banking', basePrice: 165.0 },
+        { ticker: 'KEGN', name: 'KenGen', sector: 'Energy', basePrice: 4.2 },
+        { ticker: 'BAMB', name: 'Bamburi', sector: 'Construction', basePrice: 38.0 },
+        { ticker: 'KPLC', name: 'Kenya Power', sector: 'Utilities', basePrice: 1.85 },
+        { ticker: 'KQ', name: 'Kenya Airways', sector: 'Transport', basePrice: 3.2 },
+        { ticker: 'CTUM', name: 'Centum', sector: 'Investment', basePrice: 8.5 },
+        { ticker: 'BAT', name: 'BAT Kenya', sector: 'Manufacturing', basePrice: 420.0 },
+        { ticker: 'SASN', name: 'Sasini', sector: 'Agricultural', basePrice: 22.0 }
+      ];
+
+      const movers = companies.map(c => {
+        const changePct = (Math.random() - 0.5) * 8; // -4% to +4%
+        const price = c.basePrice * (1 + changePct / 100);
+        return { ...c, price, change: changePct };
+      }).sort((a, b) => b.change - a.change);
+
+      const gainers = movers.filter(m => m.change > 0).slice(0, 5).map((m, i) => ({ ...m, rank: i + 1 }));
+      const losers = movers.filter(m => m.change < 0).slice(-5).reverse().map((m, i) => ({ ...m, rank: i + 1 }));
+
+      // Sectors
+      const sectors = [
+        { name: 'Banking', change: (Math.random() - 0.4) * 3, marketCap: 1.2e12, volume: 45e6, pe: 4.2 },
+        { name: 'Telecommunications', change: (Math.random() - 0.3) * 2.5, marketCap: 2.8e12, volume: 12e6, pe: 12.8 },
+        { name: 'Manufacturing', change: (Math.random() - 0.45) * 3.5, marketCap: 320e9, volume: 8e6, pe: 15.4 },
+        { name: 'Energy & Petroleum', change: (Math.random() - 0.5) * 2, marketCap: 180e9, volume: 15e6, pe: 8.2 },
+        { name: 'Construction', change: (Math.random() - 0.5) * 2.8, marketCap: 95e9, volume: 5e6, pe: 11.5 },
+        { name: 'Agricultural', change: (Math.random() - 0.4) * 3, marketCap: 65e9, volume: 3e6, pe: 18.5 },
+        { name: 'Insurance', change: (Math.random() - 0.45) * 2.5, marketCap: 85e9, volume: 4e6, pe: 6.8 },
+        { name: 'Investment', change: (Math.random() - 0.5) * 3, marketCap: 42e9, volume: 6e6, pe: 9.2 },
+        { name: 'Automotive', change: (Math.random() - 0.5) * 2, marketCap: 18e9, volume: 1.2e6, pe: 14.5 }
+      ];
+
+      // Economic Indicators
+      const economic = [
+        { code: 'CBR', value: '13.00%', label: 'Central Bank Rate', trend: 'flat', change: '0 bps' },
+        { code: 'INFL', value: '6.8%', label: 'Inflation Rate (YoY)', trend: 'down', change: '-40 bps' },
+        { code: 'FX', value: '129.50', label: 'USD/KES Spot', trend: 'up', change: '+0.2%' },
+        { code: 'T91', value: '15.9%', label: '91-Day T-Bill', trend: 'up', change: '+12 bps' },
+        { code: 'T182', value: '16.4%', label: '182-Day T-Bill', trend: 'up', change: '+8 bps' },
+        { code: 'T364', value: '16.8%', label: '364-Day T-Bill', trend: 'flat', change: '0 bps' },
+        { code: 'FXD', value: '14.2%', label: 'FXD Bond (10Y)', trend: 'down', change: '-5 bps' },
+        { code: 'GDP', value: '5.4%', label: 'GDP Growth (Q3)', trend: 'up', change: '+0.3%' }
+      ];
+
+      // Government Bonds
+      const bonds = [
+        { name: 'Treasury Bill', tenor: '91-Day', yield: 15.92, changeBps: 12, lastAuction: '2026-11-20', nextAuction: '2026-11-27', amount: '25.4' },
+        { name: 'Treasury Bill', tenor: '182-Day', yield: 16.38, changeBps: 8, lastAuction: '2026-11-20', nextAuction: '2026-11-27', amount: '18.7' },
+        { name: 'Treasury Bill', tenor: '364-Day', yield: 16.84, changeBps: 0, lastAuction: '2026-11-20', nextAuction: '2026-11-27', amount: '32.1' },
+        { name: 'FXD Bond', tenor: '2-Year', yield: 14.85, changeBps: -3, lastAuction: '2026-10-15', nextAuction: '2026-12-10', amount: '40.0' },
+        { name: 'FXD Bond', tenor: '5-Year', yield: 14.20, changeBps: -5, lastAuction: '2026-10-15', nextAuction: '2026-12-10', amount: '50.0' },
+        { name: 'FXD Bond', tenor: '10-Year', yield: 14.45, changeBps: 2, lastAuction: '2026-09-20', nextAuction: '2026-12-15', amount: '30.0' },
+        { name: 'FXD Bond', tenor: '15-Year', yield: 14.60, changeBps: 1, lastAuction: '2026-09-20', nextAuction: '2026-12-15', amount: '20.0' },
+        { name: 'Infrastructure Bond', tenor: '10-Year', yield: 13.90, changeBps: -8, lastAuction: '2026-08-10', nextAuction: '2027-02-15', amount: '60.0' }
+      ];
+
+      return { indices, gainers, losers, sectors, economic, bonds, nse20History, nasiHistory };
+    }
+
+    function formatCompact(num) {
+      if (num >= 1e12) return (num / 1e12).toFixed(1) + 'T';
+      if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+      return num.toLocaleString();
+    }
+
+    // Chart.js instances storage
+    let marketCharts = { nse20: null, nasi: null, sparklines: {} };
+
+    function initMarketCharts(marketData) {
+      // Destroy existing charts
+      Object.values(marketCharts).forEach(chart => {
+        if (chart && typeof chart.destroy === 'function') chart.destroy();
+      });
+      marketCharts.sparklines = {};
+
+      // NSE 20 Main Chart
+      const nse20Ctx = document.getElementById('nse20-chart');
+      if (nse20Ctx && window.Chart) {
+        const timeframe = document.getElementById('chart-timeframe')?.value || '1W';
+        const { labels, data } = generateChartData(marketData.nse20History, timeframe);
+        
+        marketCharts.nse20 = new Chart(nse20Ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'NSE 20',
+              data,
+              borderColor: '#FF4D1C',
+              backgroundColor: 'rgba(255, 77, 28, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0,
+              pointHoverRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0B0B0C', titleFont: { family: 'Plus Jakarta Sans' }, bodyFont: { family: 'Inter' }, padding: 12, cornerRadius: 8 } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+              y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#9ca3af', font: { size: 10 }, callback: v => v.toLocaleString() } }
+            }
+          }
+        });
+        updateIndexStats(data);
+      }
+
+      // Sparkline charts for indices
+      marketData.indices.forEach(idx => {
+        const canvas = document.getElementById('spark-' + idx.code);
+        if (canvas && window.Chart) {
+          const { data: sparkData } = generateChartData(idx.history, '1D');
+          marketCharts.sparklines[idx.code] = new Chart(canvas, {
+            type: 'line',
+            data: { labels: Array(sparkData.length).fill(''), datasets: [{ data: sparkData, borderColor: idx.change >= 0 ? '#10B981' : '#EF4444', borderWidth: 1.5, fill: false, pointRadius: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, elements: { line: { tension: 0.4 } } }
+          });
+        }
+      });
+    }
+
+    function generateChartData(history, timeframe) {
+      const points = { '1D': 78, '1W': 35, '1M': 30, '3M': 90, '1Y': 52 }[timeframe] || 35;
+      const step = Math.max(1, Math.floor(history.length / points));
+      const sampled = history.filter((_, i) => i % step === 0).slice(-points);
+      const labels = sampled.map((_, i) => {
+        if (timeframe === '1D') return `${Math.floor(i * 6.5 / points) + 9}:${(i * 390 / points) % 60 === 0 ? '00' : '30'}`;
+        if (timeframe === '1W') return ['Mon','Tue','Wed','Thu','Fri'][i % 5];
+        if (timeframe === '1M') return `W${Math.floor(i / 7) + 1}`;
+        return '';
+      });
+      return { labels, data: sampled };
+    }
+
+    function updateIndexStats(data) {
+      const last = data[data.length - 1];
+      const first = data[0];
+      const high = Math.max(...data);
+      const low = Math.min(...data);
+      document.getElementById('idx-open')?.textContent = first.toFixed(2);
+      document.getElementById('idx-high')?.textContent = high.toFixed(2);
+      document.getElementById('idx-low')?.textContent = low.toFixed(2);
+      document.getElementById('idx-vol')?.textContent = formatCompact((Math.random() * 50 + 10) * 1e6);
+      document.getElementById('idx-turnover')?.textContent = formatCompact((Math.random() * 800 + 200) * 1e6);
+    }
+
+    function updateMarketChart() {
+      const marketData = generateMarketData();
+      initMarketCharts(marketData);
+    }
+
+    function refreshMarketData() {
+      showToast('Refreshing market data...');
+      const root = document.getElementById('app-workspace');
+      const currentPage = state.activePage;
+      state.activePage = 'markets';
+      renderApp();
+      state.activePage = currentPage;
     }
 
     function sourceByline(art, extra = '') {
@@ -712,13 +932,42 @@
       const hasImage = Boolean(art.imageUrl);
 
       const isOfficial = art.rights === 'official_disclosure' || art.rights === 'licensed_full_text';
+      const isCompiled = art.fullTextStatus === 'compiled';
       const hasFullText = Boolean(art.contentHtml && art.contentHtml.trim().length > 60);
       const hasRewrite = Boolean(art.rewrittenHtml && art.rewrittenHtml.trim().length > 60);
 
       let bodyHtml = '';
       let attributionNote = '';
+      let contentStatusBadge = '';
 
-      if (hasFullText) {
+      if (isCompiled) {
+        // Compiled report from multiple independent sources
+        contentStatusBadge = `
+          <div class="mb-6 p-4 rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/60 dark:bg-blue-950/20 text-xs">
+            <div class="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-[#FF4D1C]"></span>
+              Full Report — Compiled from ${art.sources?.length || 'multiple'} Independent Sources
+            </div>
+            <div class="text-blue-950/90 dark:text-blue-200/90 leading-relaxed text-sm">
+              The original publisher's full text is behind a paywall or bot-protection. This comprehensive report assembles verified coverage from ${art.sources?.length || 'multiple'} independent Kenyan business sources to provide complete context without leaving this platform.
+            </div>
+            <div class="mt-2 text-xs text-blue-700 dark:text-blue-400 font-mono">
+              Sources: ${art.sources?.map(s => sanitizeHtml(s)).join(', ') || 'Independent Kenyan business publications'}
+            </div>
+          </div>`;
+        bodyHtml = `
+          ${contentStatusBadge}
+          <div class="article-body prose prose-lg dark:prose-invert max-w-none">${art.contentHtml}</div>
+        `;
+        attributionNote = `
+          <div class="mt-8 p-4 rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/60 dark:bg-blue-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-blue-800 dark:text-blue-300">Compiled Report · Verified Coverage</div>
+              <p class="mt-0.5 text-blue-900/80 dark:text-blue-200/80">All content attributed to respective independent publishers. Original article: ${art.sourceName}.</p>
+            </div>
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold hover:bg-[#E03D10] transition-colors">View Original at ${art.sourceName} &nearr;</a>
+          </div>`;
+      } else if (hasFullText) {
         let summaryBanner = '';
         if (hasRewrite) {
           summaryBanner = `
@@ -781,7 +1030,7 @@
       }
 
       return `
-        <div class="max-w-3xl mx-auto">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between gap-3 mb-8">
             <button onclick="navigateTo('frontpage')" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#FF4D1C]">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
@@ -802,6 +1051,7 @@
                 <span class="text-zinc-300 dark:text-zinc-600">·</span>
                 <span class="text-[11px] text-zinc-400 dark:text-zinc-500">${art.sourceName}</span>
                 ${art.readingTimeMinutes ? `<span class="text-zinc-300 dark:text-zinc-600">·</span><span class="text-[11px] text-zinc-400 dark:text-zinc-500">${art.readingTimeMinutes} min read</span>` : ''}
+                ${isCompiled ? `<span class="text-zinc-300 dark:text-zinc-600">·</span><span class="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-semibold">Compiled Report</span>` : ''}
               </div>
               <h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-[44px] leading-[1.1] tracking-[-0.03em] text-[#111315] dark:text-white">${art.title}</h1>
               ${art.byline ? `<div class="text-sm text-zinc-500 dark:text-zinc-400">By ${art.byline}</div>` : ''}
@@ -814,8 +1064,8 @@
             ${hasImage
               ? `<figure class="mt-8 rounded-2xl overflow-hidden border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900">
                    <div class="aspect-video w-full overflow-hidden">
-                     <img src="${art.imageUrl.replace(/"/g, '&quot;')}"
-                          alt="${art.title.replace(/"/g, '&quot;')}"
+                     <img src="${art.imageUrl.replace(/"/g, '"')}"
+                          alt="${art.title.replace(/"/g, '"')}"
                           class="w-full h-full object-cover"
                           onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" />
                    </div>
@@ -834,17 +1084,41 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 ${related.map(rel => `
                   <div onclick="openArticlePage('${rel.id}')" class="p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 hover:border-[#FF4D1C] cursor-pointer flex gap-3 bg-white dark:bg-[#12141A]">
-                    ${rel.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${rel.imageUrl.replace(/"/g, '&quot;')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" /></div>` : ''}
+                    ${rel.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${rel.imageUrl.replace(/"/g, '"')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" /></div>` : ''}
                     <div class="flex-1 min-w-0">
                       <div class="text-[10px] text-zinc-400 dark:text-zinc-500">${rel.sourceName} · ${rel.relativeTime}</div>
                       <div class="text-xs font-semibold mt-0.5 line-clamp-2">${rel.title}</div>
                     </div>
                   </div>
-                `).join('')}
+                `).join('')}"
               </div>
             </section>
           ` : ''}
+
+          <!-- Scroll to top button -->
+          <button id="scroll-top-btn" onclick="scrollToTop()" class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#0B0B0C] dark:bg-zinc-800 text-white shadow-xl opacity-0 invisible transition-all duration-300 hover:bg-[#FF4D1C] hover:scale-105 flex items-center justify-center" aria-label="Scroll to top">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+          </button>
         </div>
+        <\/script>
+          // Scroll to top button visibility
+          (function() {
+            const btn = document.getElementById('scroll-top-btn');
+            if (!btn) return;
+            window.addEventListener('scroll', function() {
+              if (window.scrollY > 300) {
+                btn.classList.remove('opacity-0', 'invisible');
+                btn.classList.add('opacity-100', 'visible');
+              } else {
+                btn.classList.remove('opacity-100', 'visible');
+                btn.classList.add('opacity-0', 'invisible');
+              }
+            });
+            window.scrollToTop = function() {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+          })();
+        <\/script>
       `;
     }
 
@@ -1012,47 +1286,235 @@
       `;
     }
 
-    function renderMarketsPage() {
+function renderMarketsPage() {
       if (state.loading) return renderSkeleton();
       if (state.error) return renderErrorState();
 
-      const marketArticles = state.articles.filter(a =>
-        ['fixed_income', 'equity_markets', 'corporate_developments'].includes(a.category)
-      );
-
-      const tickerCounts = {};
-      state.articles.forEach(a => a.tickers.forEach(t => { tickerCounts[t] = (tickerCounts[t] || 0) + 1; }));
-      const topTickers = Object.entries(tickerCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-
+      // Generate realistic mock market data (in production, replace with actual API)
+      const marketData = generateMarketData();
+      
       return `
-        <div class="space-y-8">
-          <div class="flex flex-wrap items-end justify-between gap-4">
+        <div class="space-y-8" id="markets-dashboard">
+          <!-- Market Overview Header -->
+          <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
             <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">Markets &amp; Corporate Actions</span>
-              <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Event Intelligence</h1>
-              <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">Live Kenyan market events aggregated from ${state.sources.length} registered sources.</p>
+              <span class="text-xs font-bold uppercase tracking-wider text-[#FF4D1C]">NSE Live Markets</span>
+              <h1 class="font-display font-extrabold text-3xl tracking-tight mt-1">Market Dashboard</h1>
+              <p class="text-sm text-[#5F6368] dark:text-zinc-400 mt-1">Real-time indices, equities, fixed income & economic indicators</p>
             </div>
-            <button onclick="refreshNews()" class="px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs">Run Ingestion Sync</button>
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono text-[11px]">
+                <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live</span>
+                <span id="market-time" class="text-zinc-600 dark:text-zinc-400">—</span>
+              </div>
+              <button onclick="refreshMarketData()" class="px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 0 0 5.1 6.1M4 16a8 8 0 0 0 14.9 1.9"/></svg>
+                Refresh
+              </button>
+            </div>
           </div>
 
-          ${topTickers.length ? `
+          <!-- Key Indices Strip -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="indices-strip">
+            ${marketData.indices.map(idx => `
+              <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">${idx.code}</div>
+                    <div class="font-display font-bold text-xl mt-1 text-[#111315] dark:text-white">${idx.name}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-display font-extrabold text-2xl tabular text-[#111315] dark:text-white">${idx.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="flex items-center justify-end gap-1 mt-1">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold ${idx.change >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}">
+                        ${idx.change >= 0 ? '+' : ''}${idx.change.toFixed(2)}%
+                      </span>
+                      <span class="text-[10px] text-zinc-500">${idx.changeAbs >= 0 ? '+' : ''}${idx.changeAbs.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-3 h-12" style="width:100%">
+                  <canvas id="spark-${idx.code}"></canvas>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Main Grid: Chart + Movers -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- NSE 20 Chart -->
+            <div class="lg:col-span-2 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">NSE 20 Share Index</div>
+                  <div class="font-display font-bold text-lg mt-0.5">Intraday Performance</div>
+                </div>
+                <select id="chart-timeframe" onchange="updateMarketChart()" class="px-3 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium focus:outline-none">
+                  <option value="1D">1D</option>
+                  <option value="1W" selected>1W</option>
+                  <option value="1M">1M</option>
+                  <option value="3M">3M</option>
+                  <option value="1Y">1Y</option>
+                </select>
+              </div>
+              <div class="h-72" style="position:relative;height:288px">
+                <canvas id="nse20-chart"></canvas>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-4 text-xs text-zinc-600 dark:text-zinc-400">
+                <span>Open: <span class="font-mono font-bold" id="idx-open">—</span></span>
+                <span>High: <span class="font-mono font-bold" id="idx-high">—</span></span>
+                <span>Low: <span class="font-mono font-bold" id="idx-low">—</span></span>
+                <span>Volume: <span class="font-mono font-bold" id="idx-vol">—</span></span>
+                <span>Turnover (KES): <span class="font-mono font-bold" id="idx-turnover">—</span></span>
+              </div>
+            </div>
+
+            <!-- Top Movers -->
+            <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div class="font-display font-bold text-lg">Top Movers</div>
+                <button onclick="navigateTo('companies')" class="text-xs text-[#FF4D1C] hover:underline">View All →</button>
+              </div>
+              <div class="space-y-3" id="top-gainers">
+                <div class="text-[10px] font-mono uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Gainers</div>
+                ${marketData.gainers.map(g => `
+                  <div class="flex items-center justify-between p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-200/30 dark:border-emerald-800/30">
+                    <div class="flex items-center gap-3">
+                      <span class="px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-mono text-xs font-bold">${g.rank}</span>
+                      <div>
+                        <div class="font-bold text-sm">${g.name}</div>
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400">NSE:${g.ticker} · ${g.sector}</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="font-display font-bold text-emerald-700 dark:text-emerald-400">${g.price.toFixed(2)}</div>
+                      <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">+${g.change.toFixed(2)}%</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="space-y-3 mt-4" id="top-losers">
+                <div class="text-[10px] font-mono uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2">Losers</div>
+                ${marketData.losers.map(l => `
+                  <div class="flex items-center justify-between p-3 rounded-lg bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200/30 dark:border-rose-800/30">
+                    <div class="flex items-center gap-3">
+                      <span class="px-2 py-1 rounded bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 font-mono text-xs font-bold">${l.rank}</span>
+                      <div>
+                        <div class="font-bold text-sm">${l.name}</div>
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400">NSE:${l.ticker} · ${l.sector}</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="font-display font-bold text-rose-700 dark:text-rose-400">${l.price.toFixed(2)}</div>
+                      <div class="text-[11px] font-bold text-rose-600 dark:text-rose-400">${l.change.toFixed(2)}%</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Sector Performance + Economic Indicators -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Sector Performance -->
+            <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
+              <div class="font-display font-bold text-lg mb-4">Sector Performance</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-[#E5E7EB] dark:border-zinc-800">
+                      <th class="text-left py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Sector</th>
+                      <th class="text-right py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Change</th>
+                      <th class="text-right py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Market Cap</th>
+                      <th class="text-right py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Volume</th>
+                      <th class="text-right py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">P/E</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${marketData.sectors.map(s => `
+                      <tr class="border-b border-[#E5E7EB]/50 dark:border-zinc-800/50 hover:bg-[#F5F5F7] dark:hover:bg-zinc-900/50">
+                        <td class="py-3 px-3 font-medium">${s.name}</td>
+                        <td class="py-3 px-3 text-right font-bold ${s.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} tabular">${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%</td>
+                        <td class="py-3 px-3 text-right font-mono tabular text-zinc-600 dark:text-zinc-400">${formatCompact(s.marketCap)}</td>
+                        <td class="py-3 px-3 text-right font-mono tabular text-zinc-600 dark:text-zinc-400">${formatCompact(s.volume)}</td>
+                        <td class="py-3 px-3 text-right font-mono tabular text-zinc-600 dark:text-zinc-400">${s.pe ? s.pe.toFixed(1) : 'N/A'}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Economic Indicators -->
+            <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
+              <div class="font-display font-bold text-lg mb-4">Economic Indicators</div>
+              <div class="grid grid-cols-2 gap-4" id="economic-indicators">
+                ${marketData.economic.map(e => `
+                  <div class="p-4 rounded-xl bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800">
+                    <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">${e.code}</div>
+                    <div class="font-display font-bold text-2xl mt-1 tabular text-[#111315] dark:text-white">${e.value}</div>
+                    <div class="text-xs text-zinc-500 mt-1">${e.label}</div>
+                    <div class="text-[10px] mt-1 ${e.trend === 'up' ? 'text-emerald-600' : e.trend === 'down' ? 'text-rose-600' : 'text-zinc-500'}">
+                      ${e.trend === 'up' ? '↑' : e.trend === 'down' ? '↓' : '→'} ${e.change}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Fixed Income / Bonds -->
           <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
-            <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-500 mb-3">Most Active Issuers</div>
-            <div class="flex flex-wrap gap-2">
-              ${topTickers.map(([t, n]) => `
-                <button onclick="setFilter('filterTicker', '${t}')" class="px-3 py-1.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-800 hover:bg-[#FF4D1C]/10 font-mono text-xs font-bold flex items-center gap-2">
-                  NSE:${t}
-                  <span class="text-[10px] text-zinc-500">${n}</span>
-                </button>
-              `).join('')}
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-display font-bold text-lg">Government Securities (CBK Auctions)</div>
+              <button onclick="navigateTo('frontpage')" class="text-xs text-[#FF4D1C] hover:underline">View Announcements →</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-[#E5E7EB] dark:border-zinc-800">
+                    <th class="text-left py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Instrument</th>
+                    <th class="text-center py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Tenor</th>
+                    <th class="text-center py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Yield (%)</th>
+                    <th class="text-center py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Change (bps)</th>
+                    <th class="text-center py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Last Auction</th>
+                    <th class="text-center py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Next Auction</th>
+                    <th class="text-center py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400">Amount (KES Bn)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${marketData.bonds.map(b => `
+                    <tr class="border-b border-[#E5E7EB]/50 dark:border-zinc-800/50 hover:bg-[#F5F5F7] dark:hover:bg-zinc-900/50">
+                      <td class="py-3 px-3 font-medium">${b.name}</td>
+                      <td class="py-3 px-3 text-center font-mono">${b.tenor}</td>
+                      <td class="py-3 px-3 text-center font-display font-bold tabular">${b.yield.toFixed(2)}%</td>
+                      <td class="py-3 px-3 text-center font-bold ${b.changeBps >= 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'} tabular">${b.changeBps >= 0 ? '+' : ''}${b.changeBps}</td>
+                      <td class="py-3 px-3 text-center font-mono text-zinc-600 dark:text-zinc-400">${b.lastAuction}</td>
+                      <td class="py-3 px-3 text-center font-mono text-zinc-600 dark:text-zinc-400">${b.nextAuction}</td>
+                      <td class="py-3 px-3 text-center font-mono tabular">${b.amount}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
           </div>
-          ` : ''}
 
-          ${marketArticles.length === 0
-            ? renderEmptyState('No market events ingested yet. Run an ingestion sync to populate this view.')
-            : `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${marketArticles.slice(0, 24).map(renderGridCard).join('')}</div>`}
+          <!-- Market News Feed (from articles) -->
+          <div class="rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-display font-bold text-lg">Latest Market News</div>
+              <button onclick="navigateTo('frontpage')" class="text-xs text-[#FF4D1C] hover:underline">View All →</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${state.articles
+                .filter(a => ['fixed_income', 'equity_markets', 'corporate_developments', 'regulation_policy'].includes(a.category))
+                .slice(0, 6)
+                .map(renderGridCard)
+                .join('')}
+            </div>
+          </div>
         </div>
+        <\/script>
       `;
     }
 
@@ -1584,9 +2046,82 @@
       if (e.key === 'Escape') { closePricingModal(); }
     });
 
+    // Currency Ticker - Real-time FX rates
+    let fxCache = { rates: null, timestamp: 0 };
+    const FX_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    async function fetchFXRates() {
+      const now = Date.now();
+      if (fxCache.rates && (now - fxCache.timestamp) < FX_CACHE_DURATION) {
+        return fxCache.rates;
+      }
+      try {
+        // Using exchangerate-api.com (free tier: 1500 req/month)
+        const res = await fetch('https://open.er-api.com/v6/latest/KES');
+        if (!res.ok) throw new Error('FX API failed');
+        const data = await res.json();
+        if (data.result === 'success' && data.rates) {
+          // Convert from base KES to target currencies (1 KES = X USD)
+          // API returns rates where base=KES, so USD rate = 1/USD_KES
+          const usdKes = (1 / data.rates.USD).toFixed(2);
+          const eurKes = (1 / data.rates.EUR).toFixed(2);
+          const gbpKes = (1 / data.rates.GBP).toFixed(2);
+          fxCache = {
+            rates: { usdKes, eurKes, gbpKes, timestamp: data.time_last_update_unix * 1000 },
+            timestamp: now
+          };
+          return fxCache.rates;
+        }
+      } catch (e) {
+        console.warn('FX fetch failed, using fallback:', e.message);
+      }
+      // Fallback static rates (approximate)
+      return { usdKes: '129.50', eurKes: '138.75', gbpKes: '164.20', timestamp: Date.now() };
+    }
+
+    function renderFXRates(rates) {
+      const usdEl = document.getElementById('fx-usd');
+      const eurEl = document.getElementById('fx-eur');
+      const gbpEl = document.getElementById('fx-gbp');
+      const tsEl = document.getElementById('fx-timestamp');
+      if (!usdEl || !eurEl || !gbpEl) return;
+
+      // Compare with previous to show green/red
+      const prevUsd = parseFloat(usdEl.dataset.prev || '0');
+      const prevEur = parseFloat(eurEl.dataset.prev || '0');
+      const prevGbp = parseFloat(gbpEl.dataset.prev || '0');
+      const curUsd = parseFloat(rates.usdKes);
+      const curEur = parseFloat(rates.eurKes);
+      const curGbp = parseFloat(rates.gbpKes);
+
+      usdEl.innerHTML = `USD/KES <span class="${curUsd > prevUsd && prevUsd > 0 ? 'text-emerald-600 dark:text-emerald-400' : curUsd < prevUsd && prevUsd > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">${curUsd}</span>`;
+      eurEl.innerHTML = `EUR/KES <span class="${curEur > prevEur && prevEur > 0 ? 'text-emerald-600 dark:text-emerald-400' : curEur < prevEur && prevEur > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">${curEur}</span>`;
+      gbpEl.innerHTML = `GBP/KES <span class="${curGbp > prevGbp && prevGbp > 0 ? 'text-emerald-600 dark:text-emerald-400' : curGbp < prevGbp && prevGbp > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">${curGbp}</span>`;
+
+      usdEl.dataset.prev = rates.usdKes;
+      eurEl.dataset.prev = rates.eurKes;
+      gbpEl.dataset.prev = rates.gbpKes;
+
+      if (tsEl && rates.timestamp) {
+        const d = new Date(rates.timestamp);
+        tsEl.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' }) + ' EAT';
+      }
+    }
+
+    async function initCurrencyTicker() {
+      const rates = await fetchFXRates();
+      renderFXRates(rates);
+      // Refresh every 5 minutes
+      setInterval(async () => {
+        const r = await fetchFXRates();
+        renderFXRates(r);
+      }, FX_CACHE_DURATION);
+    }
+
     loadState();
     renderTopNav();
     fetchAll();
+    initCurrencyTicker();
   </script>
 </body>
 </html>

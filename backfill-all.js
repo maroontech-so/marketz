@@ -131,7 +131,8 @@ function createLimiter(maxConcurrent) {
         word_count = ?,
         reading_time_minutes = ?,
         full_text_status = ?,
-        summary = COALESCE(?, summary)
+        summary = COALESCE(?, summary),
+        compiled_sources = ?
     WHERE id = ?
   `);
 
@@ -161,6 +162,8 @@ function createLimiter(maxConcurrent) {
           ? extracted.metaDescription
           : art.summary;
 
+        const compiledSources = extracted.sources ? JSON.stringify(extracted.sources) : null;
+
         updateArticleStmt.run(
           targetUrl,
           actualPub,
@@ -171,6 +174,7 @@ function createLimiter(maxConcurrent) {
           extracted.readingTimeMinutes,
           extracted.status,
           finalSummary,
+          compiledSources,
           art.id
         );
 
@@ -189,6 +193,7 @@ function createLimiter(maxConcurrent) {
           1,
           'excerpt_only',
           art.summary,
+          null,
           art.id
         );
       } finally {

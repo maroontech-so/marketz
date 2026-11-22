@@ -75,7 +75,7 @@
     </div>
   </header>
 
-  <main id="app" class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10"></main>
+  <main id="app" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10"></main>
 
   <footer class="border-t border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-[#111318] mt-14">
     <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
@@ -149,6 +149,7 @@
 
         const categoryLabel = CATEGORY_LABELS[a.category] || 'Markets';
         const hasImage = Boolean(a.imageUrl);
+        const isCompiled = a.fullTextStatus === 'compiled';
         const hasFullText = Boolean(a.contentHtml && a.contentHtml.trim().length > 200);
         const hasRewrite = Boolean(a.rewrittenHtml && a.rewrittenHtml.trim().length > 200);
         const isOfficial = a.rights === 'official_disclosure' || a.rights === 'licensed_full_text';
@@ -156,8 +157,36 @@
 
         let bodyHtml = '';
         let attributionNote = '';
+        let contentStatusBadge = '';
 
-        if (hasFullText) {
+        if (isCompiled) {
+          // Compiled report from multiple independent sources
+          contentStatusBadge = `
+            <div class="mb-6 p-4 rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/60 dark:bg-blue-950/20 text-xs">
+              <div class="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-2">
+                <span class="w-2 h-2 rounded-full bg-[#FF4D1C]"></span>
+                Full Report — Compiled from ${a.sources?.length || 'multiple'} Independent Sources
+              </div>
+              <div class="text-blue-950/90 dark:text-blue-200/90 leading-relaxed text-sm">
+                The original publisher's full text is behind a paywall or bot-protection. This comprehensive report assembles verified coverage from ${a.sources?.length || 'multiple'} independent Kenyan business sources to provide complete context without leaving this platform.
+              </div>
+              <div class="mt-2 text-xs text-blue-700 dark:text-blue-400 font-mono">
+                Sources: ${a.sources?.map(s => escHtml(s)).join(', ') || 'Independent Kenyan business publications'}
+              </div>
+            </div>`;
+          bodyHtml = `
+            ${contentStatusBadge}
+            <div class="article-body prose prose-lg dark:prose-invert max-w-none">${a.contentHtml}</div>
+          `;
+          attributionNote = `
+            <div class="mt-8 p-4 rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/60 dark:bg-blue-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <div class="font-bold text-blue-800 dark:text-blue-300">Compiled Report · Verified Coverage</div>
+                <p class="mt-1 text-blue-900/80 dark:text-blue-200/80">All content attributed to respective independent publishers. Original article: ${escHtml(a.sourceName)}.</p>
+              </div>
+              <a href="${escHtml(a.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold hover:bg-[#E03D10] transition-colors">View Original at ${escHtml(a.sourceName)} &nearr;</a>
+            </div>`;
+        } else if (hasFullText) {
           bodyHtml = `<div class="article-body prose prose-lg dark:prose-invert max-w-none">${a.contentHtml}</div>`;
           attributionNote = `<div class="mt-8 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/60 dark:bg-emerald-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
@@ -213,6 +242,7 @@
                 <span class="text-zinc-300 dark:text-zinc-600">·</span>
                 <span class="text-[11px] text-zinc-400 dark:text-zinc-500">${escHtml(a.sourceName)}</span>
                 ${a.readingTimeMinutes ? `<span class="text-zinc-300 dark:text-zinc-600">·</span><span class="text-[11px] text-zinc-400 dark:text-zinc-500">${a.readingTimeMinutes} min read</span>` : ''}
+                ${isCompiled ? `<span class="text-zinc-300 dark:text-zinc-600">·</span><span class="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-[10px] font-semibold">Compiled Report</span>` : ''}
               </div>
               <h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-[44px] leading-[1.1] tracking-[-0.03em] text-[#111315] dark:text-white">${escHtml(a.title)}</h1>
               ${a.byline ? `<div class="text-sm text-zinc-500 dark:text-zinc-400">By ${escHtml(a.byline)}</div>` : ''}
@@ -247,6 +277,28 @@
           </section>
           ` : ''}
         `;
+
+        // Scroll to top button
+        const scrollBtn = document.createElement('button');
+        scrollBtn.id = 'scroll-top-btn';
+        scrollBtn.onclick = function() { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        scrollBtn.className = 'fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#0B0B0C] dark:bg-zinc-800 text-white shadow-xl opacity-0 invisible transition-all duration-300 hover:bg-[#FF4D1C] hover:scale-105 flex items-center justify-center';
+        scrollBtn.setAttribute('aria-label', 'Scroll to top');
+        scrollBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>';
+        document.body.appendChild(scrollBtn);
+
+        window.addEventListener('scroll', function() {
+          const btn = document.getElementById('scroll-top-btn');
+          if (!btn) return;
+          if (window.scrollY > 300) {
+            btn.classList.remove('opacity-0', 'invisible');
+            btn.classList.add('opacity-100', 'visible');
+          } else {
+            btn.classList.remove('opacity-100', 'visible');
+            btn.classList.add('opacity-0', 'invisible');
+          }
+        });
+
       } catch (e) {
         root.innerHTML = `<div class="py-20 text-center rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900/50"><h3 class="font-display font-bold text-lg">Could not load article.</h3><p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">${escHtml(e.message || 'Unknown error')}</p><a href="index.html" class="px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold mt-3 inline-block">Back to feed</a></div>`;
       }

@@ -97,6 +97,7 @@ addColumnIfMissing('articles', 'rewritten_html', 'TEXT');
 addColumnIfMissing('articles', 'rewrite_method', 'TEXT');
 addColumnIfMissing('articles', 'resolved_url', 'TEXT');
 addColumnIfMissing('articles', 'actual_source_name', 'TEXT');
+addColumnIfMissing('articles', 'compiled_sources', 'TEXT');
 
 // Publishers routinely ship malformed CSS; jsdom logs a "Could not parse CSS
 // stylesheet" jsdomError for each one. That floods the terminal without
@@ -291,8 +292,8 @@ async function withGroqRetry(operation, maxAttempts = 4) {
       if (!isRetryable) throw err;
       if (attempt === maxAttempts - 1) throw err;
       let delayMs;
-      if (err.retryAfterMs) delayMs = err.retryAfterMs;
-      else delayMs = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 30_000);
+      if (err.retryAfterMs) delayMs = Math.min(err.retryAfterMs, 5000);
+      else delayMs = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 5000);
       console.log(`[groq] retry ${attempt + 1}/${maxAttempts} in ${Math.round(delayMs)}ms (status ${status})`);
       await new Promise((r) => setTimeout(r, delayMs));
     }
@@ -543,6 +544,11 @@ async function extractAndStore(row) {
     ? extracted.metaDescription
     : row.summary;
 
+  // Guarantee content_html is never null: fall back to the verified summary/excerpt
+  const finalHtml = extracted.contentHtml || (finalSummary ? `<p class="lead">${sanitizeHtml(finalSummary)}</p>` : null);
+
+  const compiledSources = extracted.sources ? JSON.stringify(extracted.sources) : null;
+
   db.prepare(`
     UPDATE articles
        SET content_html = ?,
@@ -557,10 +563,11 @@ async function extractAndStore(row) {
            actual_source_name = ?,
            summary = COALESCE(?, summary),
            tickers = ?,
-           institutions = ?
+           institutions = ?,
+           compiled_sources = ?
      WHERE id = ?
   `).run(
-    extracted.contentHtml,
+    finalHtml,
     rewrite.html,
     rewrite.method,
     extracted.byline,
@@ -573,6 +580,7 @@ async function extractAndStore(row) {
     finalSummary,
     JSON.stringify(tickers),
     JSON.stringify(institutions),
+    compiledSources,
     row.id
   );
 }
@@ -626,6 +634,7 @@ function rowToApi(row) {
     : extractInstitutions(`${row.title} ${row.summary || ''}`);
   const imageUrl = row.image_url || getFallbackImage({ category, tickers, institutions });
   const realUrl = row.resolved_url || row.original_url;
+  const compiledSources = row.compiled_sources ? JSON.parse(row.compiled_sources) : null;
 
   return {
     id: row.id,
@@ -653,6 +662,7 @@ function rowToApi(row) {
     feedUrl: row.original_url,
     importance: heuristicImportance(row.tier, row.title),
     contentAccess: row.rights,
+    sources: compiledSources,
   };
 }
 
