@@ -708,11 +708,11 @@
       const first = data[0];
       const high = Math.max(...data);
       const low = Math.min(...data);
-      document.getElementById('idx-open')?.textContent = first.toFixed(2);
-      document.getElementById('idx-high')?.textContent = high.toFixed(2);
-      document.getElementById('idx-low')?.textContent = low.toFixed(2);
-      document.getElementById('idx-vol')?.textContent = formatCompact((Math.random() * 50 + 10) * 1e6);
-      document.getElementById('idx-turnover')?.textContent = formatCompact((Math.random() * 800 + 200) * 1e6);
+      const elOpen = document.getElementById('idx-open'); if (elOpen) elOpen.textContent = first.toFixed(2);
+      const elHigh = document.getElementById('idx-high'); if (elHigh) elHigh.textContent = high.toFixed(2);
+      const elLow = document.getElementById('idx-low'); if (elLow) elLow.textContent = low.toFixed(2);
+      const elVol = document.getElementById('idx-vol'); if (elVol) elVol.textContent = formatCompact((Math.random() * 50 + 10) * 1e6);
+      const elTurnover = document.getElementById('idx-turnover'); if (elTurnover) elTurnover.textContent = formatCompact((Math.random() * 800 + 200) * 1e6);
     }
 
     function updateMarketChart() {
