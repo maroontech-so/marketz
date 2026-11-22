@@ -150,22 +150,28 @@
         const categoryLabel = CATEGORY_LABELS[a.category] || 'Markets';
         const hasImage = Boolean(a.imageUrl);
         const hasFullText = Boolean(a.contentHtml && a.contentHtml.trim().length > 200);
-        const isOfficial = a.rights === 'official_disclosure' || a.rights === 'licensed_full_text';
-        const isSummary = a.rights === 'summary_permitted';
         const hasRewrite = Boolean(a.rewrittenHtml && a.rewrittenHtml.trim().length > 200);
+        const isOfficial = a.rights === 'official_disclosure' || a.rights === 'licensed_full_text';
+        const officialText = isOfficial ? ('Full text reproduced under licence — reproduced in full from ' + escHtml(a.sourceName) + ' under KC-MIP rights.') : ('Complete article content extracted from ' + escHtml(a.sourceName) + '.');
 
         let bodyHtml = '';
         let attributionNote = '';
 
-        if (isOfficial && hasFullText) {
+        if (hasFullText) {
           bodyHtml = `<div class="article-body prose prose-lg dark:prose-invert max-w-none">${a.contentHtml}</div>`;
-          attributionNote = `<div class="mt-8 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/60 dark:bg-emerald-950/20 text-xs"><div class="font-bold text-emerald-800 dark:text-emerald-300">Full text reproduced under licence</div><p class="mt-1 text-emerald-900/80 dark:text-emerald-200/80">This article is reproduced in full from ${escHtml(a.sourceName)} under KC-MIP's reproduction rights.</p></div>`;
-        } else if (isSummary && hasRewrite) {
+          attributionNote = `<div class="mt-8 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/60 dark:bg-emerald-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-emerald-800 dark:text-emerald-300">${isOfficial ? 'Full text reproduced under licence' : 'Full article'}</div>
+              <p class="mt-1 text-emerald-900/80 dark:text-emerald-200/80">${officialText}</p>
+            </div>
+            <a href="${escHtml(a.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold hover:bg-[#E03D10] transition-colors">Open original at ${escHtml(a.sourceName)} &nearr;</a>
+          </div>`;
+        } else if (hasRewrite) {
           bodyHtml = `<div class="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>${a.rewriteMethod === 'extractive' ? 'Extractive summary' : 'AI-rewritten summary'}</div><div class="article-body prose prose-lg dark:prose-invert max-w-none">${a.rewrittenHtml}</div>`;
-          attributionNote = `<div class="mt-8 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/20 text-xs"><div class="font-bold text-amber-800 dark:text-amber-300">Summary, not a full reproduction</div><p class="mt-1 text-amber-900/80 dark:text-amber-200/80">${a.sourceName} permits summary reproduction only. For the complete article, read it at ${a.sourceName}.</p><a href="${escHtml(a.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-3 px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Read the full article at ${escHtml(a.sourceName)} &nearr;</a></div>`;
+          attributionNote = `<div class="mt-8 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-emerald-950/20 text-xs"><div class="font-bold text-amber-800 dark:text-amber-300">Summary, not a full reproduction</div><p class="mt-1 text-amber-900/80 dark:text-amber-200/80">${a.sourceName} permits summary reproduction only. For the complete article, read it at ${a.sourceName}.</p><a href="${escHtml(a.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-3 px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Read the full article at ${escHtml(a.sourceName)} &nearr;</a></div>`;
         } else {
           bodyHtml = `<div class="article-body prose prose-lg dark:prose-invert max-w-none"><p class="text-lg leading-relaxed">${a.summary || 'No summary was provided in the source feed.'}</p></div>`;
-          attributionNote = `<div class="mt-8 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/20 text-xs"><div class="font-bold text-amber-800 dark:text-amber-300">Excerpt only</div><p class="mt-1 text-amber-900/80 dark:text-amber-200/80">${a.fullTextStatus === 'paywalled' ? a.sourceName + ' places this article behind a paywall.' : a.fullTextStatus === 'blocked' ? a.sourceName + ' blocks automated retrieval.' : 'Full text has not been retrieved yet.'} Only the verified excerpt is shown here.</p><a href="${escHtml(a.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-3 px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Read at ${escHtml(a.sourceName)} &nearr;</a></div>`;
+          attributionNote = `<div class="mt-8 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-emerald-950/20 text-xs"><div class="font-bold text-amber-800 dark:text-amber-300">Excerpt only</div><p class="mt-1 text-amber-900/80 dark:text-amber-200/80">${a.fullTextStatus === 'paywalled' ? a.sourceName + ' places this piece behind a paywall.' : a.fullTextStatus === 'blocked' ? a.sourceName + ' blocks automated retrieval.' : 'Full text has not been retrieved yet.'} Only the verified excerpt is shown here.</p><a href="${escHtml(a.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-3 px-4 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Read at ${escHtml(a.sourceName)} &nearr;</a></div>`;
         }
 
         // Related coverage: same tickers or institutions
