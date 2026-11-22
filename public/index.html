@@ -620,6 +620,7 @@
                 : `<span class="text-[11px] text-zinc-400 font-mono">KE · KES</span>`}
             </div>
             <button onclick="event.stopPropagation(); toggleSaveArticle('${art.id}')" class="font-semibold ${isSaved ? 'text-[#FF4D1C]' : 'text-zinc-500 hover:text-[#111315] dark:hover:text-white'}">${isSaved ? 'Saved' : '+ Save'}</button>
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="ml-2 inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#FF4D1C] text-white text-[10px] font-bold hover:bg-[#E03D10] transition-colors">Open original <span class="text-[8px]">→</span></a>
           </div>
         </article>
       `;
@@ -939,6 +940,7 @@
                         <span class="text-zinc-400">·</span>
                         ${sourceByline(item)}
                       </div>
+                      <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="mt-2 inline-block px-2.5 py-0.5 rounded bg-[#FF4D1C] text-white text-[9px] font-bold hover:bg-[#E03D10] transition-colors">Open original →</a>
                     </div>
                     ${itemImg ? `
                       <div class="w-28 sm:w-36 aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0">
