@@ -4,13 +4,13 @@ const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const Parser = require('rss-parser');
 
-const db = new Database(path.join(__dirname, '..', 'kc-mip.sqlite'));
+const db = new Database(path.join(__dirname, '..', 'fincapita.sqlite'));
 
 // ── Paste the same parser config from server.js ─────────────────────────────
 const parser = new Parser({
   timeout: 12000,
   headers: {
-    'User-Agent': 'Mozilla/5.0 (compatible; KC-MIP/1.0; +https://kc-mip.local)',
+    'User-Agent': 'Mozilla/5.0 (compatible; FinCapita/1.0; +https://fincapita.local)',
     'Accept': 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
   },
   customFields: {

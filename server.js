@@ -1,5 +1,5 @@
 /**
- * KC-MIP — Kenya Capital Markets Intelligence Platform
+ * FinCapita — Kenya Capital Markets Intelligence Platform
  * Multi-source RSS aggregation with full-text extraction, SQLite persistence,
  * copyright-aware rewriting via Groq, and per-feed health tracking.
  */
@@ -41,7 +41,7 @@ const {
 // ---------------------------------------------------------------------------
 // DATABASE
 // ---------------------------------------------------------------------------
-const db = new Database(path.join(__dirname, 'kc-mip.sqlite'));
+const db = new Database(path.join(__dirname, 'fincapita.sqlite'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
@@ -191,7 +191,7 @@ const SOURCES = [
 const parser = new Parser({
   timeout: 15000,
   headers: {
-    'User-Agent': 'Mozilla/5.0 (compatible; KC-MIP/1.0; +https://kc-mip.local)',
+    'User-Agent': 'Mozilla/5.0 (compatible; FinCapita/1.0; +https://fincapita.local)',
     'Accept': 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
   },
   customFields: {
@@ -921,7 +921,7 @@ app.get('*', (req, res) => {
   }, 45 * 1000);
 
   const server = app.listen(PORT, () => {
-    console.log(`KC-MIP listening on :${PORT}`);
+    console.log(`FinCapita listening on :${PORT}`);
   });
 
   function gracefulShutdown() {

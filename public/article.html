@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KC-MIP — Article</title>
+  <title>FinCapita — Article</title>
   <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -59,7 +59,7 @@
           </svg>
         </span>
         <div>
-          <span class="font-display font-extrabold text-lg tracking-tight text-white block leading-none">KC-MIP</span>
+          <span class="font-display font-extrabold text-lg tracking-tight text-white block leading-none">FinCapita</span>
           <span class="text-[9px] font-mono uppercase tracking-[0.16em] text-zinc-400 block mt-0.5">Kenya Markets</span>
         </div>
       </a>
@@ -79,7 +79,7 @@
 
   <footer class="border-t border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-[#111318] mt-14">
     <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
-      <div class="font-display font-bold text-sm text-[#111315] dark:text-white">KC-MIP · Kenya Capital Markets Intelligence Platform</div>
+      <div class="font-display font-bold text-sm text-[#111315] dark:text-white">FinCapita · Kenya Capital Markets Intelligence Platform</div>
       <div class="font-mono text-[11px]">RIGHTS-AWARE · DPA 2019</div>
     </div>
   </footer>
@@ -153,7 +153,7 @@
         const hasFullText = Boolean(a.contentHtml && a.contentHtml.trim().length > 200);
         const hasRewrite = Boolean(a.rewrittenHtml && a.rewrittenHtml.trim().length > 200);
         const isOfficial = a.rights === 'official_disclosure' || a.rights === 'licensed_full_text';
-        const officialText = isOfficial ? ('Full text reproduced under licence — reproduced in full from ' + escHtml(a.sourceName) + ' under KC-MIP rights.') : ('Complete article content extracted from ' + escHtml(a.sourceName) + '.');
+        const officialText = isOfficial ? ('Full text reproduced under licence — reproduced in full from ' + escHtml(a.sourceName) + ' under FinCapita rights.') : ('Complete article content extracted from ' + escHtml(a.sourceName) + '.');
 
         let bodyHtml = '';
         let attributionNote = '';

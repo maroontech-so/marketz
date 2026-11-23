@@ -1,5 +1,5 @@
 /**
- * KC-MIP Comprehensive Database Migration & Backfill
+ * FinCapita Comprehensive Database Migration & Backfill
  * Resolves Google News URLs to solid publisher posts, extracts images & content,
  * updates tickers/institutions, dedups articles, and ensures production readiness.
  */
@@ -14,7 +14,7 @@ const {
   decodeGoogleNewsUrl,
 } = require('./lib/extract');
 
-const db = new Database(path.join(__dirname, 'kc-mip.sqlite'));
+const db = new Database(path.join(__dirname, 'fincapita.sqlite'));
 db.pragma('journal_mode = WAL');
 
 function addColumnIfMissing(table, column, definition) {
@@ -58,7 +58,7 @@ function createLimiter(maxConcurrent) {
 }
 
 (async () => {
-  console.log('=== Starting KC-MIP Database Migration & Backfill ===');
+  console.log('=== Starting FinCapita Database Migration & Backfill ===');
 
   // Step 1: Deduplicate articles based on title & source
   console.log('[step 1] Checking for duplicate articles...');
