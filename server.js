@@ -48,7 +48,7 @@ const {
   initVectorTable,
 } = require('./lib/cleo-rag');
 
-const { chatCompletion, discoverBestModel, resetModelCache } = require('./lib/groq-client');
+const { chatCompletion, discoverBestModel, getSelectedModel, resetModelCache } = require('./lib/groq-client');
 
 // ---------------------------------------------------------------------------
 // DATABASE
@@ -803,6 +803,7 @@ async function ingestAll() {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 function handleNews(req, res) {
@@ -934,7 +935,7 @@ function handleCleoChat(req, res) {
 
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url, score: scores.shift() })) });
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name, url: s.resolved_url || s.original_url, score: scores.shift() })) });
       }
 
       try {
@@ -945,11 +946,11 @@ function handleCleoChat(req, res) {
 
         res.json({
           answer,
-          model: discoverBestModel.getSelectedModel ? discoverBestModel.getSelectedModel() : 'auto',
+          model: getSelectedModel() || 'auto',
           sources: sources.map((s, i) => ({
             id: s.id,
             title: s.title,
-            source: s.sourceName,
+            source: s.source_name,
             category: s.category,
             publishedAt: s.published_at,
             url: s.resolved_url || s.original_url,
@@ -960,7 +961,26 @@ function handleCleoChat(req, res) {
         });
       } catch (err) {
         console.error('[cleo] Chat error:', err.message);
-        res.status(500).json({ error: 'Failed to generate answer', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        // If API key is invalid or no working model, return context and sources so user can still read relevant articles
+        if (err.message.includes('401') || err.message.includes('Invalid API Key') || err.message.includes('invalid_api_key') || err.message.includes('No working model')) {
+          return res.json({
+            answer: 'AI service unavailable. Here are the most relevant articles I found for your question:',
+            model: 'fallback',
+            sources: sources.map((s, i) => ({
+              id: s.id,
+              title: s.title,
+              source: s.source_name,
+              category: s.category,
+              publishedAt: s.published_at,
+              url: s.resolved_url || s.original_url,
+              relevanceScore: Math.round((scores[i] || 0) * 100),
+            })),
+            question,
+            timestamp: new Date().toISOString(),
+            fallback: true,
+          });
+        }
+        res.status(500).json({ error: 'Failed to generate answer', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
     } catch (err) {
       console.error('[cleo] Retrieval error:', err.message);
@@ -984,7 +1004,7 @@ function handleCleoTrends(req, res) {
 
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
 
       try {
@@ -997,11 +1017,11 @@ function handleCleoTrends(req, res) {
           analysis,
           periodDays: Number(days),
           filters: { category, ticker, institution },
-          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url })),
+          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name, url: s.resolved_url || s.original_url })),
           timestamp: new Date().toISOString(),
         });
       } catch (err) {
-        res.status(500).json({ error: 'Failed to generate trends', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        res.status(500).json({ error: 'Failed to generate trends', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
     } catch (err) {
       res.status(500).json({ error: 'Failed to retrieve trends context', details: err.message });
@@ -1020,7 +1040,7 @@ function handleCleoCompany(req, res) {
 
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
 
       try {
@@ -1033,11 +1053,11 @@ function handleCleoCompany(req, res) {
           ticker,
           name: TICKERS[ticker],
           analysis,
-          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url })),
+          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name, url: s.resolved_url || s.original_url })),
           timestamp: new Date().toISOString(),
         });
       } catch (err) {
-        res.status(500).json({ error: 'Failed to generate company analysis', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        res.status(500).json({ error: 'Failed to generate company analysis', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
     } catch (err) {
       res.status(500).json({ error: 'Failed to retrieve company context', details: err.message });
@@ -1056,48 +1076,24 @@ function handleCleoInstitution(req, res) {
 
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
 
-      const model = process.env.GROQ_MODEL || 'mixtral-8x7b-32768';
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
-
       try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: `You are Cleo, summarizing ${INSTITUTIONS[code]} (${code}) recent actions. Provide structured summary with cited sources.` },
-              { role: 'user', content: prompt },
-            ],
-            temperature: 0.3,
-            max_completion_tokens: 2000,
-            reasoning_effort: 'low',
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-
-        if (!response.ok) throw new Error(`Groq ${response.status}`);
-        const data = await response.json();
-        const analysis = data.choices?.[0]?.message?.content || 'No analysis generated';
+        const analysis = await chatCompletion(apiKey, [
+          { role: 'system', content: `You are Cleo, summarizing ${INSTITUTIONS[code]} (${code}) recent actions. Provide structured summary with cited sources.` },
+          { role: 'user', content: prompt },
+        ], { temperature: 0.3, maxTokens: 2000 });
 
         res.json({
           code,
           name: INSTITUTIONS[code],
           analysis,
-          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url })),
+          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name, url: s.resolved_url || s.original_url })),
           timestamp: new Date().toISOString(),
         });
       } catch (err) {
-        clearTimeout(timer);
-        res.status(500).json({ error: 'Failed to generate institution analysis', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+        res.status(500).json({ error: 'Failed to generate institution analysis', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.source_name })) });
       }
     } catch (err) {
       res.status(500).json({ error: 'Failed to retrieve institution context', details: err.message });
