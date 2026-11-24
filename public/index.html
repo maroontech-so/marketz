@@ -106,30 +106,22 @@
           <span class="hidden sm:inline">Filters</span>
         </button>
 
-        <div class="flex-1 min-w-0 flex items-center justify-center gap-3 text-center overflow-hidden">
-          <button onclick="openPricingModal()" class="text-xs sm:text-[13px] font-medium hover:text-[#FF4D1C] transition-colors truncate">
-            Daily NSE, CBK & CMA Intelligence Brief — Get morning KES market disclosures
-          </button>
-          
-          <!-- Currency Ticker -->
-          <div id="currency-ticker" class="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono text-[11px] shrink-0">
-            <span class="text-zinc-500 dark:text-zinc-400">FX:</span>
-            <span id="fx-usd" class="tabular">USD/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
-            <span class="text-zinc-300 dark:text-zinc-600">|</span>
-            <span id="fx-eur" class="tabular">EUR/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
-            <span class="text-zinc-300 dark:text-zinc-600">|</span>
-            <span id="fx-gbp" class="tabular">GBP/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
-            <span id="fx-timestamp" class="text-zinc-400 dark:text-zinc-500 ml-2">—</span>
+<div class="flex-1 min-w-0 flex items-center justify-center gap-3 text-center overflow-hidden">
+            <button onclick="openPricingModal()" class="text-xs sm:text-[13px] font-medium hover:text-[#FF4D1C] transition-colors truncate">
+              Daily NSE, CBK & CMA Intelligence Brief — Get morning KES market disclosures
+            </button>
+            
+            <!-- Currency Ticker -->
+            <div id="currency-ticker" class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono text-[11px] shrink-0">
+              <span class="text-zinc-500 dark:text-zinc-400">FX:</span>
+              <span id="fx-usd" class="tabular">USD/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
+              <span class="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
+              <span id="fx-eur" class="tabular hidden sm:inline">EUR/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
+              <span class="text-zinc-300 dark:text-zinc-600 hidden md:inline">|</span>
+              <span id="fx-gbp" class="tabular hidden md:inline">GBP/KES <span class="text-emerald-600 dark:text-emerald-400">—</span></span>
+              <span id="fx-timestamp" class="text-zinc-400 dark:text-zinc-500 ml-1">—</span>
+            </div>
           </div>
-          
-          <span id="live-stats" class="hidden xl:inline-flex items-center gap-2 pl-3 border-l border-zinc-300 dark:border-zinc-700 font-mono text-[11px] text-zinc-600 dark:text-zinc-400 tabular shrink-0">
-            <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Live</span>
-            <span>·</span>
-            <span id="stat-articles">—</span>
-            <span>·</span>
-            <span id="stat-sources">—</span>
-          </span>
-        </div>
 
         <div class="relative flex items-center shrink-0">
           <input
@@ -1314,7 +1306,6 @@ function renderMarketsPage() {
             </div>
             <div class="flex items-center gap-3 flex-wrap">
               <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono text-[11px]">
-                <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live</span>
                 <span id="market-time" class="text-zinc-600 dark:text-zinc-400">—</span>
               </div>
               <button onclick="refreshMarketData()" class="px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs transition-colors flex items-center gap-2">
@@ -2059,6 +2050,14 @@ ${linked.length === 0
     // Currency Ticker - Real-time FX rates
     let fxCache = { rates: null, timestamp: 0 };
     const FX_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    const MOBILE_ROTATE_INTERVAL = 60 * 1000; // 1 minute on mobile
+    const FX_PAIRS = [
+      { code: 'USD', label: 'USD/KES', key: 'usdKes' },
+      { code: 'EUR', label: 'EUR/KES', key: 'eurKes' },
+      { code: 'GBP', label: 'GBP/KES', key: 'gbpKes' },
+      { code: 'JPY', label: 'JPY/KES', key: 'jpyKes' },
+      { code: 'CNY', label: 'CNY/KES', key: 'cnyKes' },
+    ];
 
     async function fetchFXRates() {
       const now = Date.now();
@@ -2086,8 +2085,11 @@ ${linked.length === 0
         console.warn('FX fetch failed, using fallback:', e.message);
       }
       // Fallback static rates (approximate)
-      return { usdKes: '129.50', eurKes: '138.75', gbpKes: '164.20', timestamp: Date.now() };
+      return { usdKes: '129.50', eurKes: '138.75', gbpKes: '164.20', jpyKes: '0.85', cnyKes: '18.10', timestamp: Date.now() };
     }
+
+    let mobileFxIndex = 0;
+    let mobileRotateTimer = null;
 
     function renderFXRates(rates) {
       const usdEl = document.getElementById('fx-usd');
@@ -2096,36 +2098,147 @@ ${linked.length === 0
       const tsEl = document.getElementById('fx-timestamp');
       if (!usdEl || !eurEl || !gbpEl) return;
 
-      // Compare with previous to show green/red
-      const prevUsd = parseFloat(usdEl.dataset.prev || '0');
-      const prevEur = parseFloat(eurEl.dataset.prev || '0');
-      const prevGbp = parseFloat(gbpEl.dataset.prev || '0');
-      const curUsd = parseFloat(rates.usdKes);
-      const curEur = parseFloat(rates.eurKes);
-      const curGbp = parseFloat(rates.gbpKes);
+      const isMobile = window.innerWidth < 640;
+      
+      // Update all elements with current rates
+      const allRates = {
+        usdKes: rates.usdKes,
+        eurKes: rates.eurKes,
+        gbpKes: rates.gbpKes,
+        jpyKes: rates.jpyKes || '0.85',
+        cnyKes: rates.cnyKes || '18.10'
+      };
 
-      usdEl.innerHTML = `USD/KES <span class="${curUsd > prevUsd && prevUsd > 0 ? 'text-emerald-600 dark:text-emerald-400' : curUsd < prevUsd && prevUsd > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">${curUsd}</span>`;
-      eurEl.innerHTML = `EUR/KES <span class="${curEur > prevEur && prevEur > 0 ? 'text-emerald-600 dark:text-emerald-400' : curEur < prevEur && prevEur > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">${curEur}</span>`;
-      gbpEl.innerHTML = `GBP/KES <span class="${curGbp > prevGbp && prevGbp > 0 ? 'text-emerald-600 dark:text-emerald-400' : curGbp < prevGbp && prevGbp > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">${curGbp}</span>`;
-
-      usdEl.dataset.prev = rates.usdKes;
-      eurEl.dataset.prev = rates.eurKes;
-      gbpEl.dataset.prev = rates.gbpKes;
+      // Store previous for comparison
+      Object.entries(allRates).forEach(([key, value]) => {
+        const el = document.getElementById('fx-' + key.replace('Kes', '').toLowerCase());
+        if (el) {
+          const prev = parseFloat(el.dataset.prev || '0');
+          const cur = parseFloat(value);
+          const colorClass = cur > prev && prev > 0 ? 'text-emerald-600 dark:text-emerald-400' : 
+                            cur < prev && prev > 0 ? 'text-rose-600 dark:text-rose-400' : 
+                            'text-emerald-600 dark:text-emerald-400';
+          const label = FX_PAIRS.find(p => p.key === key)?.label || key.toUpperCase() + '/KES';
+          el.innerHTML = `${label} <span class="${colorClass}">${cur}</span>`;
+          el.dataset.prev = value;
+        }
+      });
 
       if (tsEl && rates.timestamp) {
         const d = new Date(rates.timestamp);
         tsEl.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' }) + ' EAT';
       }
+
+      // Mobile rotation logic
+      if (isMobile) {
+        startMobileRotation(allRates);
+      } else {
+        stopMobileRotation();
+        // Show all rates on desktop
+        usdEl.classList.remove('hidden');
+        eurEl.classList.remove('hidden');
+        gbpEl.classList.remove('hidden');
+        const sep1 = usdEl.nextElementSibling;
+        const sep2 = eurEl.nextElementSibling;
+        if (sep1) sep1.classList.remove('hidden');
+        if (sep2) sep2.classList.remove('hidden');
+      }
+    }
+
+    function startMobileRotation(rates) {
+      if (mobileRotateTimer) return;
+      
+      const tickerEl = document.getElementById('currency-ticker');
+      if (!tickerEl) return;
+      
+      const fxElements = {
+        usdKes: document.getElementById('fx-usd'),
+        eurKes: document.getElementById('fx-eur'),
+        gbpKes: document.getElementById('fx-gbp'),
+        jpyKes: document.getElementById('fx-jpy') || createFxElement('jpyKes'),
+        cnyKes: document.getElementById('fx-cny') || createFxElement('cnyKes'),
+      };
+      
+      // Ensure JPY and CNY elements exist
+      if (!document.getElementById('fx-jpy')) {
+        const jpyEl = document.createElement('span');
+        jpyEl.id = 'fx-jpy';
+        jpyEl.className = 'tabular hidden';
+        tickerEl.insertBefore(jpyEl, tickerEl.querySelector('#fx-timestamp'));
+      }
+      if (!document.getElementById('fx-cny')) {
+        const cnyEl = document.createElement('span');
+        cnyEl.id = 'fx-cny';
+        cnyEl.className = 'tabular hidden';
+        tickerEl.insertBefore(cnyEl, tickerEl.querySelector('#fx-timestamp'));
+      }
+
+      const rotate = () => {
+        const pair = FX_PAIRS[mobileFxIndex];
+        const value = rates[pair.key];
+        const el = document.getElementById('fx-' + pair.key.replace('Kes', '').toLowerCase());
+        
+        // Hide all
+        FX_PAIRS.forEach(p => {
+          const e = document.getElementById('fx-' + p.key.replace('Kes', '').toLowerCase());
+          if (e) e.classList.add('hidden');
+        });
+        
+        // Show current
+        if (el) {
+          const prev = parseFloat(el.dataset.prev || '0');
+          const cur = parseFloat(value);
+          const colorClass = cur > prev && prev > 0 ? 'text-emerald-600 dark:text-emerald-400' : 
+                            cur < prev && prev > 0 ? 'text-rose-600 dark:text-rose-400' : 
+                            'text-emerald-600 dark:text-emerald-400';
+          el.innerHTML = `${pair.label} <span class="${colorClass}">${cur}</span>`;
+          el.classList.remove('hidden');
+        }
+        
+        mobileFxIndex = (mobileFxIndex + 1) % FX_PAIRS.length;
+      };
+      
+      rotate(); // Initial
+      mobileRotateTimer = setInterval(rotate, MOBILE_ROTATE_INTERVAL);
+    }
+
+    function stopMobileRotation() {
+      if (mobileRotateTimer) {
+        clearInterval(mobileRotateTimer);
+        mobileRotateTimer = null;
+      }
+      mobileFxIndex = 0;
+    }
+
+    function createFxElement(key) {
+      const el = document.createElement('span');
+      el.id = 'fx-' + key.replace('Kes', '').toLowerCase();
+      el.className = 'tabular hidden';
+      return el;
     }
 
     async function initCurrencyTicker() {
       const rates = await fetchFXRates();
       renderFXRates(rates);
-      // Refresh every 5 minutes
+      
+      // Refresh rates every 5 minutes
       setInterval(async () => {
         const r = await fetchFXRates();
         renderFXRates(r);
       }, FX_CACHE_DURATION);
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        const rates = { 
+          usdKes: document.getElementById('fx-usd')?.dataset.prev || '129.50',
+          eurKes: document.getElementById('fx-eur')?.dataset.prev || '138.75',
+          gbpKes: document.getElementById('fx-gbp')?.dataset.prev || '164.20',
+          jpyKes: document.getElementById('fx-jpy')?.dataset.prev || '0.85',
+          cnyKes: document.getElementById('fx-cny')?.dataset.prev || '18.10',
+          timestamp: Date.now()
+        };
+        renderFXRates(rates);
+      });
     }
 
     loadState();
