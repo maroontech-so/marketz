@@ -28,7 +28,6 @@ const {
   extractTickers,
   extractInstitutions,
   extractPublisherName,
-  getFallbackImage,
   decodeGoogleNewsUrl,
   extractFullArticle,
   extractImageFromHtml,
@@ -37,6 +36,19 @@ const {
   SANITIZE_OPTIONS,
   BROWSER_HEADERS,
 } = require('./lib/extract');
+
+const {
+  buildVectorIndex,
+  retrieveContext,
+  answerQuestion,
+  analyzeTrends,
+  getMarketPosition,
+  getInstitutionCoverage,
+  getStats,
+  initVectorTable,
+} = require('./lib/cleo-rag');
+
+const { chatCompletion, discoverBestModel, resetModelCache } = require('./lib/groq-client');
 
 // ---------------------------------------------------------------------------
 // DATABASE
@@ -98,6 +110,8 @@ addColumnIfMissing('articles', 'rewrite_method', 'TEXT');
 addColumnIfMissing('articles', 'resolved_url', 'TEXT');
 addColumnIfMissing('articles', 'actual_source_name', 'TEXT');
 addColumnIfMissing('articles', 'compiled_sources', 'TEXT');
+addColumnIfMissing('articles', 'fallback_url', 'TEXT');
+addColumnIfMissing('articles', 'fallback_source_name', 'TEXT');
 
 // Publishers routinely ship malformed CSS; jsdom logs a "Could not parse CSS
 // stylesheet" jsdomError for each one. That floods the terminal without
@@ -423,7 +437,7 @@ async function llmRewrite(text, sourceName) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
+  const model = process.env.GROQ_MODEL || 'mixtral-8x7b-32768';
   const reasoningEffort = process.env.GROQ_REASONING_EFFORT || 'low';
   const baseUrl = 'https://api.groq.com/openai/v1';
 
@@ -539,7 +553,7 @@ async function extractAndStore(row) {
     }
   }
 
-  const finalImg = extracted.imageUrl || row.image_url || getFallbackImage({ category: row.category, tickers, institutions });
+  const finalImg = extracted.imageUrl || row.image_url || null;
   const finalSummary = (extracted.metaDescription && (!row.summary || row.summary.length < 50))
     ? extracted.metaDescription
     : row.summary;
@@ -564,7 +578,9 @@ async function extractAndStore(row) {
            summary = COALESCE(?, summary),
            tickers = ?,
            institutions = ?,
-           compiled_sources = ?
+           compiled_sources = ?,
+           fallback_url = ?,
+           fallback_source_name = ?
      WHERE id = ?
   `).run(
     finalHtml,
@@ -581,6 +597,8 @@ async function extractAndStore(row) {
     JSON.stringify(tickers),
     JSON.stringify(institutions),
     compiledSources,
+    extracted.fallbackUrl || null,
+    extracted.fallbackSourceName || null,
     row.id
   );
 }
@@ -632,14 +650,17 @@ function rowToApi(row) {
   const institutions = (row.institutions && row.institutions !== '[]')
     ? JSON.parse(row.institutions)
     : extractInstitutions(`${row.title} ${row.summary || ''}`);
-  const imageUrl = row.image_url || getFallbackImage({ category, tickers, institutions });
+  const imageUrl = row.image_url || null;
   const realUrl = row.resolved_url || row.original_url;
   const compiledSources = row.compiled_sources ? JSON.parse(row.compiled_sources) : null;
+  const isFallback = row.full_text_status === 'fallback';
+  const displayUrl = isFallback && row.fallback_url ? row.fallback_url : realUrl;
+  const displaySourceName = isFallback && row.fallback_source_name ? row.fallback_source_name : (row.actual_source_name || row.source_name);
 
   return {
     id: row.id,
     title: row.title,
-    sourceName: row.actual_source_name || row.source_name,
+    sourceName: displaySourceName,
     sourceTier: row.tier,
     category: row.category,
     publishedAt: row.published_at,
@@ -658,11 +679,13 @@ function rowToApi(row) {
     imageUrl,
     originalUrl: realUrl,
     resolvedUrl: realUrl,
-    sourceUrl: realUrl,
+    sourceUrl: displayUrl,
     feedUrl: row.original_url,
     importance: heuristicImportance(row.tier, row.title),
     contentAccess: row.rights,
     sources: compiledSources,
+    fallbackUrl: row.fallback_url || null,
+    fallbackSourceName: row.fallback_source_name || null,
   };
 }
 
@@ -740,8 +763,8 @@ async function ingestSource(source) {
     const institutions = extractInstitutions(`${cleanTitle} ${rssSummary}`);
     const contentHash = sha256(rawUrl);
 
-    // Initial image is ALWAYS guaranteed: from feed or curated high-res fallback
-    const initialImg = extractImage(item, rawUrl, source.feedUrl) || getFallbackImage({ category, tickers, institutions });
+    // Initial image from feed extraction only — no fallbacks
+    const initialImg = extractImage(item, rawUrl, source.feedUrl);
     const initialPublisher = extractPublisherName(rawUrl, title, rssSummary) || source.name;
 
     const result = insert.run(
@@ -879,6 +902,243 @@ app.post('/api/v1/ingest', async (_req, res) => {
   res.json({ ranAt: new Date().toISOString(), results });
 });
 
+// ---------------------------------------------------------------------------
+// CLEO AI CHATBOT ENDPOINTS
+// ---------------------------------------------------------------------------
+let cleoIndexBuilt = false;
+
+async function ensureCleoIndex() {
+  if (!cleoIndexBuilt) {
+    await buildVectorIndex();
+    cleoIndexBuilt = true;
+  }
+}
+
+function handleCleoChat(req, res) {
+  const { question, options = {} } = req.body;
+  if (!question || typeof question !== 'string' || !question.trim()) {
+    return res.status(400).json({ error: 'Question is required' });
+  }
+
+  (async () => {
+    try {
+      await ensureCleoIndex();
+      const { prompt, sources, scores, context } = await answerQuestion(question.trim(), {
+        topK: options.topK || 8,
+        category: options.category,
+        ticker: options.ticker?.toUpperCase(),
+        institution: options.institution?.toUpperCase(),
+        since: options.since,
+        until: options.until,
+      });
+
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url, score: scores.shift() })) });
+      }
+
+      try {
+        const answer = await chatCompletion(apiKey, [
+          { role: 'system', content: 'You are Cleo, an expert Kenya capital markets intelligence analyst. Answer questions using ONLY the provided context. Cite sources inline like [Source 1]. Be precise with KES, NSE, CBK, CMA terminology.' },
+          { role: 'user', content: prompt },
+        ], { temperature: 0.2, maxTokens: 1500 });
+
+        res.json({
+          answer,
+          model: discoverBestModel.getSelectedModel ? discoverBestModel.getSelectedModel() : 'auto',
+          sources: sources.map((s, i) => ({
+            id: s.id,
+            title: s.title,
+            source: s.sourceName,
+            category: s.category,
+            publishedAt: s.published_at,
+            url: s.resolved_url || s.original_url,
+            relevanceScore: Math.round((scores[i] || 0) * 100),
+          })),
+          question,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('[cleo] Chat error:', err.message);
+        res.status(500).json({ error: 'Failed to generate answer', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+    } catch (err) {
+      console.error('[cleo] Retrieval error:', err.message);
+      res.status(500).json({ error: 'Failed to retrieve context', details: err.message });
+    }
+  })();
+}
+
+function handleCleoTrends(req, res) {
+  const { days = 30, category, ticker, institution } = req.query;
+
+  (async () => {
+    try {
+      await ensureCleoIndex();
+      const { prompt, sources, context } = await analyzeTrends({
+        days: Number(days),
+        category,
+        ticker: ticker?.toUpperCase(),
+        institution: institution?.toUpperCase(),
+      });
+
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+
+      try {
+        const analysis = await chatCompletion(apiKey, [
+          { role: 'system', content: 'You are Cleo, a Kenya capital markets analyst. Provide structured trend analysis with cited sources.' },
+          { role: 'user', content: prompt },
+        ], { temperature: 0.3, maxTokens: 2000 });
+
+        res.json({
+          analysis,
+          periodDays: Number(days),
+          filters: { category, ticker, institution },
+          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url })),
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        res.status(500).json({ error: 'Failed to generate trends', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to retrieve trends context', details: err.message });
+    }
+  })();
+}
+
+function handleCleoCompany(req, res) {
+  const ticker = String(req.params.ticker || '').toUpperCase();
+  if (!TICKERS[ticker]) return res.status(404).json({ error: 'Unknown ticker', ticker });
+
+  (async () => {
+    try {
+      await ensureCleoIndex();
+      const { prompt, sources, context } = await getMarketPosition(ticker);
+
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+
+      try {
+        const analysis = await chatCompletion(apiKey, [
+          { role: 'system', content: `You are Cleo, analyzing ${TICKERS[ticker]} (${ticker}) market position. Provide structured analysis with cited sources.` },
+          { role: 'user', content: prompt },
+        ], { temperature: 0.3, maxTokens: 2000 });
+
+        res.json({
+          ticker,
+          name: TICKERS[ticker],
+          analysis,
+          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url })),
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        res.status(500).json({ error: 'Failed to generate company analysis', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to retrieve company context', details: err.message });
+    }
+  })();
+}
+
+function handleCleoInstitution(req, res) {
+  const code = String(req.params.code || '').toUpperCase();
+  if (!INSTITUTIONS[code]) return res.status(404).json({ error: 'Unknown institution', code });
+
+  (async () => {
+    try {
+      await ensureCleoIndex();
+      const { prompt, sources, context } = await getInstitutionCoverage(code);
+
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: 'AI service not configured', context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+
+      const model = process.env.GROQ_MODEL || 'mixtral-8x7b-32768';
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: `You are Cleo, summarizing ${INSTITUTIONS[code]} (${code}) recent actions. Provide structured summary with cited sources.` },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.3,
+            max_completion_tokens: 2000,
+            reasoning_effort: 'low',
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        if (!response.ok) throw new Error(`Groq ${response.status}`);
+        const data = await response.json();
+        const analysis = data.choices?.[0]?.message?.content || 'No analysis generated';
+
+        res.json({
+          code,
+          name: INSTITUTIONS[code],
+          analysis,
+          sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName, url: s.resolved_url || s.original_url })),
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        clearTimeout(timer);
+        res.status(500).json({ error: 'Failed to generate institution analysis', details: err.message, context, sources: sources.map(s => ({ id: s.id, title: s.title, source: s.sourceName })) });
+      }
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to retrieve institution context', details: err.message });
+    }
+  })();
+}
+
+function handleCleoStats(req, res) {
+  try {
+    const stats = getStats();
+    res.json({ ...stats, timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get stats', details: err.message });
+  }
+}
+
+function handleCleoRebuildIndex(req, res) {
+  (async () => {
+    try {
+      cleoIndexBuilt = false;
+      const count = await buildVectorIndex();
+      res.json({ success: true, articlesIndexed: count, timestamp: new Date().toISOString() });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to rebuild index', details: err.message });
+    }
+  })();
+}
+
+app.post('/api/cleo/chat', handleCleoChat);
+app.post('/api/v1/cleo/chat', handleCleoChat);
+app.get('/api/cleo/trends', handleCleoTrends);
+app.get('/api/v1/cleo/trends', handleCleoTrends);
+app.get('/api/cleo/company/:ticker', handleCleoCompany);
+app.get('/api/v1/cleo/company/:ticker', handleCleoCompany);
+app.get('/api/cleo/institution/:code', handleCleoInstitution);
+app.get('/api/v1/cleo/institution/:code', handleCleoInstitution);
+app.get('/api/cleo/stats', handleCleoStats);
+app.get('/api/v1/cleo/stats', handleCleoStats);
+app.post('/api/cleo/rebuild-index', handleCleoRebuildIndex);
+app.post('/api/v1/cleo/rebuild-index', handleCleoRebuildIndex);
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -909,6 +1169,9 @@ app.get('*', (req, res) => {
 
   // Immediately start processing any pending / unextracted articles in background
   processExtractionQueue().catch((e) => console.warn(`[boot-queue] ${e.message}`));
+
+  // Build Cleo vector index in background
+  buildVectorIndex().then(() => { cleoIndexBuilt = true; console.log('[cleo] Vector index ready'); }).catch((e) => console.warn(`[cleo] Index build failed: ${e.message}`));
 
   // Ingest RSS feeds every 10 minutes
   setInterval(() => {

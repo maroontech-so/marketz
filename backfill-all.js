@@ -9,7 +9,6 @@ const {
   extractTickers,
   extractInstitutions,
   extractPublisherName,
-  getFallbackImage,
   extractFullArticle,
   decodeGoogleNewsUrl,
 } = require('./lib/extract');
@@ -157,7 +156,7 @@ function createLimiter(maxConcurrent) {
 
         const targetUrl = extracted.resolvedUrl || art.original_url;
         const actualPub = extracted.actualSourceName || extractPublisherName(targetUrl, art.title, art.summary) || art.source_name;
-        const finalImg = extracted.imageUrl || art.image_url || getFallbackImage({ category: art.category, tickers, institutions });
+        const finalImg = extracted.imageUrl || art.image_url;
         const finalSummary = (extracted.metaDescription && (!art.summary || art.summary.length < 50))
           ? extracted.metaDescription
           : art.summary;
@@ -181,8 +180,8 @@ function createLimiter(maxConcurrent) {
         if (targetUrl && !targetUrl.includes('news.google.com')) resolvedCount++;
         if (extracted.contentHtml) withContentCount++;
       } catch (err) {
-        // Fallback safety
-        const fallbackImg = art.image_url || getFallbackImage({ category: art.category, tickers, institutions });
+        // Fallback safety — no placeholder images
+        const fallbackImg = art.image_url;
         updateArticleStmt.run(
           art.resolved_url || art.original_url,
           art.source_name,
@@ -207,17 +206,11 @@ function createLimiter(maxConcurrent) {
 
   await Promise.allSettled(tasks);
 
-  // Step 4: Final verification & ensure zero missing images
+  // Step 4: Final verification — report missing images but do NOT fill with fallbacks
   console.log('[step 4] Final verification...');
   const missingImgRows = db.prepare(`SELECT id, category, tickers, institutions FROM articles WHERE image_url IS NULL OR image_url = ''`).all();
-  const setImgStmt = db.prepare(`UPDATE articles SET image_url = ? WHERE id = ?`);
-  for (const r of missingImgRows) {
-    const fallback = getFallbackImage({
-      category: r.category,
-      tickers: JSON.parse(r.tickers || '[]'),
-      institutions: JSON.parse(r.institutions || '[]')
-    });
-    setImgStmt.run(fallback, r.id);
+  if (missingImgRows.length > 0) {
+    console.log(`[step 4] ${missingImgRows.length} articles have no extracted image — leaving as null (no fallback)`);
   }
 
   // Summary statistics

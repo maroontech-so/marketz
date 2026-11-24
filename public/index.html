@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FinCapita — Kenya Capital Markets Intelligence Platform</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
   <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -59,11 +61,7 @@
   <header class="sticky top-0 z-40 bg-[#0B0B0C] text-white border-b border-white/10">
     <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <button onclick="navigateTo('frontpage')" class="flex items-center gap-2.5 shrink-0 text-left">
-        <span class="w-8 h-8 rounded-lg bg-[#FF4D1C] flex items-center justify-center">
-          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7" />
-          </svg>
-        </span>
+        <img src="/logo.png" alt="FinCapita" class="w-8 h-8 rounded-lg object-contain" />
         <div>
           <span class="font-display font-extrabold text-lg tracking-tight text-white block leading-none">FinCapita</span>
           <span class="text-[9px] font-mono uppercase tracking-[0.16em] text-zinc-400 block mt-0.5">Kenya Markets</span>
@@ -791,13 +789,13 @@
       `;
     }
 
-    function articleImage(art) {
+function articleImage(art) {
       if (!art.imageUrl) return null;
-      return `<img src="${art.imageUrl.replace(/"/g, '&quot;')}"
-        alt="${art.title.replace(/"/g, '&quot;')}"
+      return `<img src="${art.imageUrl.replace(/"/g, '"')}"
+        alt="${art.title.replace(/"/g, '"')}"
         loading="lazy"
         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" />`;
+        onerror="this.onerror=null;this.parentElement.style.display='none';" />`;
     }
 
     function renderCategoryTabsBar() {
@@ -933,6 +931,7 @@
 
       const isOfficial = art.rights === 'official_disclosure' || art.rights === 'licensed_full_text';
       const isCompiled = art.fullTextStatus === 'compiled';
+      const isFallback = art.fullTextStatus === 'fallback';
       const hasFullText = Boolean(art.contentHtml && art.contentHtml.trim().length > 60);
       const hasRewrite = Boolean(art.rewrittenHtml && art.rewrittenHtml.trim().length > 60);
 
@@ -966,6 +965,17 @@
               <p class="mt-0.5 text-blue-900/80 dark:text-blue-200/80">All content attributed to respective independent publishers. Original article: ${art.sourceName}.</p>
             </div>
             <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold hover:bg-[#E03D10] transition-colors">View Original at ${art.sourceName} &nearr;</a>
+          </div>`;
+      } else if (isFallback) {
+        // Fallback: content from alternative independent source
+        bodyHtml = `<div class="article-body prose prose-lg dark:prose-invert max-w-none">${art.contentHtml}</div>`;
+        attributionNote = `
+          <div class="mt-8 p-4 rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/60 dark:bg-blue-950/20 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-blue-800 dark:text-blue-300">Full Article — Alternative Source</div>
+              <p class="mt-0.5 text-blue-900/80 dark:text-blue-200/80">The original publisher blocked automated retrieval. This complete article was sourced from ${art.sourceName}, an independent Kenyan business publication covering the same event.</p>
+            </div>
+            <a href="${art.sourceUrl}" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3.5 py-2 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold hover:bg-[#E03D10] transition-colors">Open at ${art.sourceName} &nearr;</a>
           </div>`;
       } else if (hasFullText) {
         let summaryBanner = '';
@@ -1061,15 +1071,15 @@
               </div>
             </header>
 
-            ${hasImage
+${hasImage
               ? `<figure class="mt-8 rounded-2xl overflow-hidden border border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-zinc-900">
-                   <div class="aspect-video w-full overflow-hidden">
-                     <img src="${art.imageUrl.replace(/"/g, '"')}"
-                          alt="${art.title.replace(/"/g, '"')}"
-                          class="w-full h-full object-cover"
-                          onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" />
-                   </div>
-                 </figure>`
+                    <div class="aspect-video w-full overflow-hidden">
+                      <img src="${art.imageUrl.replace(/"/g, '"')}"
+                           alt="${art.title.replace(/"/g, '"')}"
+                           class="w-full h-full object-cover"
+                           onerror="this.onerror=null;this.parentElement.parentElement.style.display='none';" />
+                    </div>
+                  </figure>`
               : `<div class="mt-8 border-t border-[#E5E7EB] dark:border-zinc-800"></div>`}
 
             <div class="mt-8">
@@ -1084,7 +1094,7 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 ${related.map(rel => `
                   <div onclick="openArticlePage('${rel.id}')" class="p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 hover:border-[#FF4D1C] cursor-pointer flex gap-3 bg-white dark:bg-[#12141A]">
-                    ${rel.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${rel.imageUrl.replace(/"/g, '"')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" /></div>` : ''}
+                    ${rel.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${rel.imageUrl.replace(/"/g, '"')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.parentElement.style.display='none';" /></div>` : ''}
                     <div class="flex-1 min-w-0">
                       <div class="text-[10px] text-zinc-400 dark:text-zinc-500">${rel.sourceName} · ${rel.relativeTime}</div>
                       <div class="text-xs font-semibold mt-0.5 line-clamp-2">${rel.title}</div>
@@ -1575,11 +1585,11 @@ function renderMarketsPage() {
           </div>
           <div class="space-y-3">
             <h2 class="font-display font-bold text-sm">Linked Coverage (${linked.length})</h2>
-            ${linked.length === 0
+${linked.length === 0
               ? `<p class="text-sm text-zinc-500">No articles ingested yet for this issuer.</p>`
               : linked.map(art => `
                 <div onclick="openArticlePage('${art.id}')" class="p-4 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 hover:border-[#FF4D1C] cursor-pointer flex gap-3 bg-white dark:bg-[#12141A]">
-                  ${art.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${art.imageUrl.replace(/"/g, '&quot;')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';" /></div>` : ''}
+                  ${art.imageUrl ? `<div class="w-20 aspect-[4/3] rounded-lg overflow-hidden bg-[#F5F5F7] dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 shrink-0"><img src="${art.imageUrl.replace(/"/g, '"')}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.parentElement.style.display='none';" /></div>` : ''}
                   <div class="flex-1 min-w-0">
                     <div class="text-[10px] text-zinc-400 dark:text-zinc-500">${art.sourceName} · ${art.relativeTime}</div>
                     <div class="text-xs font-semibold mt-0.5 line-clamp-2">${art.title}</div>
@@ -2123,5 +2133,6 @@ function renderMarketsPage() {
     fetchAll();
     initCurrencyTicker();
   </script>
+  <script src="cleo-widget.js"></script>
 </body>
 </html>
