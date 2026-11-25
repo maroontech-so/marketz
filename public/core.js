@@ -159,8 +159,11 @@
   function sourceByline(article) { return `<span class="text-[11px] text-zinc-400 dark:text-zinc-500">${escHtml(article.sourceName)}</span>`; }
   function canDisplayArticleImage(article) {
     const restrictedStatuses = new Set(['paywalled', 'blocked', 'pending', 'excerpt_only', 'metadata_only']);
-    const restrictedRights = new Set(['summary_permitted', 'paywalled', 'blocked', 'metadata_only', 'excerpt_only']);
-    return Boolean(article) && !restrictedStatuses.has(String(article.fullTextStatus || 'pending').toLowerCase()) && !restrictedRights.has(String(article.contentAccess || article.rights || '').toLowerCase());
+    const restrictedRights = new Set(['paywalled', 'blocked', 'metadata_only', 'excerpt_only']);
+    const status = String(article.fullTextStatus || 'pending').toLowerCase();
+    const rights = String(article.contentAccess || article.rights || '').toLowerCase();
+    if (!restrictedStatuses.has(status)) return true;
+    return Boolean(article) && !restrictedRights.has(rights);
   }
 
   function articleImage(article) {

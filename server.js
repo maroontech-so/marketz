@@ -38,7 +38,6 @@ const {
 } = require('./lib/extract');
 
 const {
-  buildVectorIndex,
   retrieveContext,
   answerQuestion,
   analyzeTrends,
@@ -52,6 +51,7 @@ const {
 const { getMarketData, getForexData } = require('./lib/market-data');
 
 const { completeCleoChat, getCleoStatus } = require('./lib/cleo-client');
+const { buildVectorIndex: buildCleoVectorIndex } = require('./lib/cleo-rag');
 
 // ---------------------------------------------------------------------------
 // DATABASE
@@ -492,9 +492,22 @@ async function llmRewrite(text, sourceName) {
       }
     });
     groqRecordUsage(estimated);
-    const content = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning;
+    const msg = data.choices?.[0]?.message;
+    let content = msg?.content || msg?.reasoning || '';
     if (!content || content.trim().length < 80) return null;
-    return { html: plainTextToSafeHtml(content.trim()), method: `llm:${model}` };
+    // Strip reasoning blocks (qwen3, etc. embed reasoning in content)
+    content = content
+      .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+      .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+      .replace(/^.*?<\/thinking>\s*/i, '')
+      .replace(/^.*?<\/reasoning>\s*/i, '')
+      .replace(/^\s*[\*#]\s*reasoning:?[\s\S]*?(?=\n\w|\n$)/i, '')
+      .trim();
+    if (content.length < 80) return null;
+    // Clean up empty paragraphs
+    const html = plainTextToSafeHtml(content);
+    const cleanedHtml = html.replace(/<p>\s*<\/p>/g, '');
+    return { html: cleanedHtml, method: `llm:${model}` };
   } catch (err) {
     if (err.message === 'GROQ_DAILY_CAP') {
       console.warn('[groq] daily cap reached — falling back to extractive for the rest of this run');
@@ -524,7 +537,8 @@ async function rewriteContent(article, rights, sourceName) {
 // ---------------------------------------------------------------------------
 // EXTRACTION PIPELINE & PERSISTENT QUEUE
 // ---------------------------------------------------------------------------
-const EXTRACT_CONCURRENCY = createLimiter(4);
+// Extraction concurrency: 1 for low memory (Render free tier), 2 for standard
+const EXTRACT_CONCURRENCY = createLimiter(Number(process.env.EXTRACT_CONCURRENCY) || 1);
 
 async function extractAndStore(row) {
   const sourceSlug = row.source_slug;
@@ -609,7 +623,9 @@ async function extractAndStore(row) {
 }
 
 let isExtracting = false;
-async function processExtractionQueue(batchSize = 25) {
+const QUEUE_BATCH_SIZE = Number(process.env.QUEUE_BATCH_SIZE) || 5;
+
+async function processExtractionQueue(batchSize = QUEUE_BATCH_SIZE) {
   if (isExtracting) return;
   isExtracting = true;
   try {
@@ -634,6 +650,8 @@ async function processExtractionQueue(batchSize = 25) {
         })
       )
     );
+    
+    if (global.gc) global.gc();
   } catch (err) {
     console.warn(`[queue] error: ${err.message}`);
   } finally {
@@ -981,7 +999,7 @@ async function ensureCleoIndex(force = false) {
     if (cleoIndexBuilt && !force) return;
 
     const generation = cleoIndexGeneration;
-    const build = buildVectorIndex().then((count) => {
+    const build = buildCleoVectorIndex().then((count) => {
       if (generation === cleoIndexGeneration) cleoIndexBuilt = true;
       return count;
     });
@@ -1291,10 +1309,25 @@ app.get('*', (req, res, next) => {
     }
 
     processExtractionQueue().catch((e) => console.warn(`[boot-queue] ${e.message}`));
-    ensureCleoIndex().then(() => console.log('[cleo] Vector index ready')).catch((e) => console.warn(`[cleo] Index build failed: ${e.message}`));
+    // Vector index builds lazily on first Cleo query (not at startup)
     setInterval(() => ingestAll().catch((e) => console.error('[cron]', e.message)), 10 * 60 * 1000);
     setInterval(() => processExtractionQueue().catch((e) => console.error('[queue-cron]', e.message)), 45 * 1000);
   }
+
+  // Memory monitoring for Render/low-memory environments
+  const MEMORY_LOG_INTERVAL = Number(process.env.MEMORY_LOG_INTERVAL) || 60000;
+  setInterval(() => {
+    const mem = process.memoryUsage();
+    const rssMB = (mem.rss / 1024 / 1024).toFixed(1);
+    const heapUsedMB = (mem.heapUsed / 1024 / 1024).toFixed(1);
+    const heapTotalMB = (mem.heapTotal / 1024 / 1024).toFixed(1);
+    const externalMB = (mem.external / 1024 / 1024).toFixed(1);
+    console.log(`[memory] rss=${rssMB}MB heapUsed=${heapUsedMB}MB heapTotal=${heapTotalMB}MB external=${externalMB}MB`);
+    if (global.gc && mem.heapUsed > 200 * 1024 * 1024) {
+      global.gc();
+      console.log('[memory] GC triggered');
+    }
+  }, MEMORY_LOG_INTERVAL);
 
   const server = app.listen(PORT, () => {
     console.log(`FinCapita listening on :${PORT}`);
