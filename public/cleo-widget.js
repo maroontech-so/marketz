@@ -18,9 +18,11 @@
   let rafId = null;
   let reactionTimer = null;
   let bubbleTimer = null;
+  let bodyOverflowBeforeFullPage = '';
 
   // History & suggestions
   const MAX_HISTORY = 5;
+  const MAX_HISTORY_MESSAGES = MAX_HISTORY * 2;
   const STORAGE_KEY = 'cleo_chat_history';
   const SUGGESTIONS_KEY = 'cleo_suggestions';
   const MAX_SUGGESTIONS = 8;
@@ -48,9 +50,15 @@
   function loadHistory() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) chatHistory = JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        chatHistory = Array.isArray(parsed) ? parsed.slice(-MAX_HISTORY_MESSAGES) : [];
+      }
       const sugg = localStorage.getItem(SUGGESTIONS_KEY);
-      if (sugg) userSuggestions = JSON.parse(sugg);
+      if (sugg) {
+        const parsed = JSON.parse(sugg);
+        userSuggestions = Array.isArray(parsed) ? parsed.slice(0, MAX_SUGGESTIONS) : [];
+      }
     } catch (e) {
       chatHistory = [];
       userSuggestions = [];
@@ -59,14 +67,14 @@
 
   function saveHistory() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory.slice(-MAX_HISTORY)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory.slice(-MAX_HISTORY_MESSAGES)));
       localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(userSuggestions.slice(-MAX_SUGGESTIONS)));
     } catch (e) {}
   }
 
   function addToHistory(role, text, sources = []) {
     chatHistory.push({ role, text, sources, timestamp: Date.now() });
-    if (chatHistory.length > MAX_HISTORY * 2) chatHistory = chatHistory.slice(-MAX_HISTORY * 2);
+    if (chatHistory.length > MAX_HISTORY_MESSAGES) chatHistory = chatHistory.slice(-MAX_HISTORY_MESSAGES);
     saveHistory();
   }
 
@@ -172,8 +180,8 @@
 
       .chat-window {
         margin-bottom: 8px;
-        width: calc(100vw - 24px);
-        max-width: 100%;
+        width: min(380px, calc(100vw - 24px));
+        max-width: calc(100vw - 24px);
         max-height: calc(100dvh - 5rem);
         height: min(480px, calc(100dvh - 5rem));
         background: #fff;
@@ -190,7 +198,7 @@
         transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       }
       @media (min-width: 480px) {
-        .chat-window { margin-bottom: 10px; width: calc(100vw - 32px); max-width: 380px; }
+        .chat-window { margin-bottom: 10px; width: min(380px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
       }
       @media (min-width: 640px) {
         .chat-window { margin-bottom: 12px; width: 380px; }
@@ -213,6 +221,46 @@
         border-radius: 20px;
         box-shadow: 0 28px 70px -18px rgba(37, 99, 235, 0.16), 0 12px 32px -10px rgba(15, 23, 42, 0.1);
       }
+      @media (max-width: 639px) {
+        .cleo-wrapper.is-fullpage { padding: 0; }
+        .cleo-wrapper.is-fullpage .chat-window {
+          order: 1;
+          width: 100%;
+          max-width: none;
+          height: 100%;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        .cleo-wrapper.is-fullpage .chat-header {
+          min-height: calc(76px + env(safe-area-inset-top));
+          padding-top: calc(12px + env(safe-area-inset-top));
+          padding-bottom: 8px;
+          padding-left: calc(76px + env(safe-area-inset-left));
+        }
+        .cleo-wrapper.is-fullpage .fab-container {
+          position: absolute;
+          top: max(12px, env(safe-area-inset-top));
+          left: max(12px, env(safe-area-inset-left));
+          width: 56px;
+          height: 56px;
+          margin: 0;
+          order: 0;
+        }
+        .cleo-wrapper.is-fullpage .cleo-fab {
+          width: 56px;
+          height: 56px;
+          transform: none;
+          animation: none;
+        }
+        .cleo-wrapper.is-fullpage .cleo-pulse,
+        .cleo-wrapper.is-fullpage .cleo-shadow,
+        .cleo-wrapper.is-fullpage .reaction-bubble { display: none; }
+        .cleo-wrapper.is-fullpage .chat-form {
+          padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        }
+        .cleo-wrapper.is-fullpage .chat-messages { overscroll-behavior: contain; }
+      }
       @media (min-width: 1280px) { .cleo-wrapper.is-fullpage .chat-window { max-width: 820px; } }
       @media (min-width: 1536px) { .cleo-wrapper.is-fullpage .chat-window { max-width: 960px; } }
 
@@ -232,6 +280,7 @@
       .chat-badge { padding: 1px 6px; background: #eff6ff; color: #2563eb; font-size: 8px; font-weight: 600; border-radius: 9999px; }
       .chat-status { font-size: 9px; color: #94a3b8; line-height: 1; margin-top: 1px; display: flex; align-items: center; gap: 5px; }
       .chat-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #10b981; }
+      .chat-status.is-offline::before { background: #f59e0b; }
       .chat-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
       .icon-btn {
         padding: 6px;
@@ -370,11 +419,17 @@
         color: #1d4ed8;
         font-size: 10px;
         font-weight: 500;
+        line-height: 1.35;
         cursor: pointer;
         transition: all 0.15s;
-        white-space: nowrap;
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
       }
       .msg-suggestion:hover { background: #dbeafe; border-color: #3b82f6; transform: translateY(-1px); }
+      .msg-suggestion:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
       .msg-bubble.user .msg-suggestion { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.2); color: #fff; }
       .msg-bubble.user .msg-suggestion:hover { background: rgba(255,255,255,0.25); }
 
@@ -389,17 +444,23 @@
       }
       @media (min-width: 640px) { .quick-prompts { padding: 8px 12px; } }
       .prompt-chip {
-        white-space: nowrap;
         padding: 4px 10px;
         border-radius: 9999px;
         background: #eff6ff;
         color: #1d4ed8;
         font-size: 10px;
         font-weight: 500;
+        line-height: 1.35;
         border: 1px solid rgba(37, 99, 235, 0.12);
         transition: all 0.15s;
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
       }
       .prompt-chip:hover { background: #dbeafe; border-color: #3b82f6; transform: translateY(-1px); }
+      .prompt-chip:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
       @media (min-width: 640px) {
         .prompt-chip { padding: 5px 12px; font-size: 11px; }
       }
@@ -797,9 +858,9 @@
           <div>
             <div class="chat-title-row">
               <h3 class="chat-title">Cleo</h3>
-              <span class="chat-badge">AI</span>
+              <span id="cleo-provider-badge" class="chat-badge">AI</span>
             </div>
-            <p class="chat-status">Ready</p>
+            <p id="cleo-status" class="chat-status">Connecting…</p>
           </div>
           <div class="chat-actions">
             <button id="expand-chat-btn" onclick="toggleExpandChat()" aria-label="Expand chat to full screen" title="Expand" class="icon-btn">
@@ -817,7 +878,7 @@
         <div id="chat-messages" class="chat-messages"></div>
         <div class="quick-prompts" id="quick-prompts"></div>
         <form onsubmit="handleChatSubmit(event)" class="chat-form">
-          <textarea id="chat-input" placeholder="Ask Cleo..." autocomplete="off" class="chat-input" rows="1" aria-label="Your question"></textarea>
+          <textarea id="chat-input" placeholder="Ask Cleo..." autocomplete="off" class="chat-input" rows="1" maxlength="2000" aria-label="Your question"></textarea>
           <button type="submit" aria-label="Send message" class="send-btn">
             <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7"></path>
@@ -876,6 +937,7 @@
     loadHistory();
     restoreChat();
     renderSuggestions();
+    refreshProviderStatus();
     updateMetrics();
     window.addEventListener('resize', updateMetrics, { passive: true });
     document.addEventListener('pointermove', onPointerMove, { passive: true });
@@ -883,6 +945,36 @@
   }
 
   function $(id) { return document.getElementById(id); }
+
+  async function refreshProviderStatus() {
+    const badge = $('cleo-provider-badge');
+    const status = $('cleo-status');
+    if (!badge || !status) return;
+
+    try {
+      const response = await fetch('/api/cleo/status', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Status unavailable');
+      const data = await response.json();
+      badge.textContent = data.configured ? 'Groq' : 'AI';
+      status.textContent = data.configured ? 'Groq configured' : 'Groq not configured';
+      status.classList.toggle('is-offline', !data.configured);
+      status.title = data.configured ? 'Groq configured; awaiting a successful response' : 'GROQ_API_KEY is required on the server';
+    } catch {
+      status.textContent = 'Reconnecting…';
+      status.classList.add('is-offline');
+    }
+  }
+
+  function markProviderReady() {
+    const badge = $('cleo-provider-badge');
+    const status = $('cleo-status');
+    if (!badge || !status) return;
+
+    badge.textContent = 'Groq';
+    status.textContent = 'Groq ready';
+    status.classList.remove('is-offline');
+    status.title = 'Responses provided by Groq';
+  }
 
   function updateMetrics() {
     const fab = $('cleo-fab');
@@ -1114,6 +1206,8 @@
     const input = $('chat-input');
 
     if (isFullPage) {
+      bodyOverflowBeforeFullPage = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       wrapper.classList.add('is-fullpage');
       if (cleoFace) cleoFace.classList.remove('is-hidden');
       if (cleoClose) cleoClose.classList.remove('is-visible');
@@ -1126,6 +1220,8 @@
       });
       setTimeout(() => input?.focus(), 150);
     } else {
+      document.body.style.overflow = bodyOverflowBeforeFullPage;
+      bodyOverflowBeforeFullPage = '';
       wrapper.classList.remove('is-fullpage');
       if (cleoFace) cleoFace.classList.add('is-hidden');
       if (cleoClose) cleoClose.classList.add('is-visible');
@@ -1151,9 +1247,16 @@
       return;
     }
     container.style.display = 'flex';
-    container.innerHTML = suggestions.map(s =>
-      `<button onclick="sendQuickPrompt('${s.replace(/'/g, "\\'")}')" class="prompt-chip">${s}</button>`
-    ).join('');
+    const buttons = suggestions.map(suggestion => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'prompt-chip';
+      button.textContent = suggestion;
+      button.title = suggestion;
+      button.addEventListener('click', () => sendQuickPrompt(suggestion));
+      return button;
+    });
+    container.replaceChildren(...buttons);
   }
 
   function renderMarkdown(text) {
@@ -1190,7 +1293,12 @@
     html = html.replace(/^\- (.+)$/gm, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
     html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, href) => {
+      const safeHref = safeExternalUrl(href);
+      return safeHref
+        ? `<a href="${escapeAttribute(safeHref)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+        : label;
+    });
 
     const lines = html.split('\n');
     const result = [];
@@ -1232,28 +1340,6 @@
     return result.join('\n').replace(/\n{3,}/g, '\n\n');
   }
 
-  function buildSourcesHtml(sources) {
-    if (!sources || sources.length === 0) return '';
-    return `
-      <div class="cleo-inline-sources">
-        ${sources.map(s => `
-          <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="cleo-inline-source" title="${escapeHtml(s.title)}">${escapeHtml(s.title.slice(0, 50))}${s.title.length > 50 ? '…' : ''}</a>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  function buildSuggestionsHtml(suggestions) {
-    if (!suggestions || suggestions.length === 0) return '';
-    return `
-      <div class="msg-suggestions">
-        ${suggestions.map(s => `
-          <button onclick="sendQuickPrompt('${s.replace(/'/g, "\\'")}')" class="msg-suggestion">${s}</button>
-        `).join('')}
-      </div>
-    `;
-  }
-
   function generateFollowups(answer, sources) {
     const followups = [];
     const lower = answer.toLowerCase();
@@ -1292,19 +1378,39 @@
       md.innerHTML = renderMarkdown(text);
       bbl.appendChild(md);
       
-      // Inline sources
-      const sourcesHtml = buildSourcesHtml(sources);
-      if (sourcesHtml) {
+      const validSources = (sources || []).map(source => ({
+        title: String(source.title || 'Source'),
+        url: safeExternalUrl(source.url),
+      })).filter(source => source.url);
+      if (validSources.length > 0) {
         const sourcesDiv = document.createElement('div');
-        sourcesDiv.innerHTML = sourcesHtml;
+        sourcesDiv.className = 'cleo-inline-sources';
+        validSources.forEach(source => {
+          const link = document.createElement('a');
+          link.href = source.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.className = 'cleo-inline-source';
+          link.title = source.title;
+          link.textContent = source.title.slice(0, 50) + (source.title.length > 50 ? '…' : '');
+          sourcesDiv.appendChild(link);
+        });
         bbl.appendChild(sourcesDiv);
       }
 
-      // Followup suggestions
-      const followups = generateFollowups(text, sources);
+      const followups = generateFollowups(text, sources || []);
       if (followups.length > 0) {
         const suggDiv = document.createElement('div');
-        suggDiv.innerHTML = buildSuggestionsHtml(followups);
+        suggDiv.className = 'msg-suggestions';
+        followups.forEach(suggestion => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'msg-suggestion';
+          button.textContent = suggestion;
+          button.title = suggestion;
+          button.addEventListener('click', () => sendQuickPrompt(suggestion));
+          suggDiv.appendChild(button);
+        });
         bbl.appendChild(suggDiv);
       }
     } else {
@@ -1331,7 +1437,7 @@
     }
 
     // Show last MAX_HISTORY exchanges
-    const recent = chatHistory.slice(-MAX_HISTORY * 2);
+    const recent = chatHistory.slice(-MAX_HISTORY_MESSAGES);
     recent.forEach(msg => {
       appendMessage(msg.role, msg.text, msg.sources || [], true);
     });
@@ -1358,6 +1464,25 @@
     return div.innerHTML;
   }
 
+  function escapeAttribute(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function safeExternalUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    try {
+      const url = new URL(value.replace(/&amp;/g, '&'), window.location.origin);
+      return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+
   window.handleChatSubmit = async function(e) {
     e.preventDefault();
     const input = $('chat-input');
@@ -1373,8 +1498,7 @@
     renderSuggestions();
     showTyping();
 
-    // Build context from history (last 5 messages = ~2.5 exchanges)
-    const contextMessages = chatHistory.slice(-MAX_HISTORY).map(m => ({ role: m.role, content: m.text }));
+    const contextMessages = chatHistory.slice(-MAX_HISTORY_MESSAGES, -1).map(m => ({ role: m.role, content: m.text }));
 
     try {
       const response = await fetch('/api/cleo/chat', {
@@ -1382,7 +1506,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           question: text, 
-          options: { topK: 8 },
+          options: { topK: 6 },
           history: contextMessages
         }),
       });
@@ -1396,10 +1520,16 @@
 
       const data = await response.json();
       appendMessage('assistant', data.answer, data.sources || []);
+      markProviderReady();
       if (isFullPage) triggerReaction('happy');
-    } catch (err) {
+    } catch {
       hideTyping();
-      appendMessage('assistant', `Sorry, I couldn't process that. ${err.message}`, []);
+      const status = $('cleo-status');
+      if (status) {
+        status.textContent = 'Groq unavailable';
+        status.classList.add('is-offline');
+      }
+      appendMessage('assistant', "I'm having trouble connecting right now. Please try again in a moment.", []);
     } finally {
       isTyping = false;
     }
@@ -1432,6 +1562,6 @@
     open: () => { if (!isOpen) toggleChat(); },
     close: toggleChat,
     ask: (q) => { const input = $('chat-input'); if (input) input.value = q; window.handleChatSubmit({ preventDefault: () => {} }); },
-    clearHistory: () => { chatHistory = []; userSuggestions = []; saveHistory(); const messages = $('chat-messages'); if (messages) messages.innerHTML = ''; restoreChat(); },
+    clearHistory: () => { chatHistory = []; userSuggestions = []; saveHistory(); const messages = $('chat-messages'); if (messages) messages.innerHTML = ''; restoreChat(); renderSuggestions(); },
   };
 })();

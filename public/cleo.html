@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cleo — Minimal Chatbot FAB</title>
+    <title>Cleo — FinCapita AI Assistant</title>
     <!-- Ultra-lightweight Zero-Runtime CSS (No external JS/Font CDNs = ~45MB RAM saved) -->
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -549,6 +549,7 @@
     <!-- ===================================================================== -->
     <!-- MINIMAL BLUE CHATBOT WIDGET & "CLEO" CHARACTER FAB                    -->
     <!-- ===================================================================== -->
+    <main id="cleo-main" aria-label="Cleo AI assistant">
     <div id="chatbot-wrapper" class="cleo-wrapper">
 
         <!-- Minimalist Crisp Light Chat Drawer -->
@@ -559,9 +560,9 @@
                 <div>
                     <div class="chat-title-row">
                         <h3 class="chat-title">Cleo</h3>
-                        <span class="chat-badge">AI</span>
+                        <span id="cleo-provider-badge" class="chat-badge">AI</span>
                     </div>
-                    <p class="chat-status">Online & ready</p>
+                    <p id="cleo-status" class="chat-status">Connecting…</p>
                 </div>
                 <div class="chat-actions">
                     <button id="expand-chat-btn" onclick="toggleExpandChat()" aria-label="Expand chat to full screen" title="Expand chat" class="icon-btn">
@@ -588,13 +589,13 @@
 
             <!-- Quick Prompts -->
             <div class="quick-prompts">
-                <button onclick="sendQuickPrompt('Who are you?')" class="prompt-chip">Who are you?</button>
-                <button onclick="sendQuickPrompt('Say something fast ⚡')" class="prompt-chip">Say something fast ⚡</button>
+                <button onclick="sendQuickPrompt('What are recent market trends?')" class="prompt-chip">Market trends</button>
+                <button onclick="sendQuickPrompt('Latest T-bill auction results')" class="prompt-chip">T-bill auctions</button>
             </div>
 
             <!-- Input Form -->
             <form id="chat-form" onsubmit="handleChatSubmit(event)" class="chat-form">
-                <input type="text" id="chat-input" placeholder="Ask Cleo..." autocomplete="off" class="chat-input">
+                <input type="text" id="chat-input" placeholder="Ask Cleo..." autocomplete="off" maxlength="2000" class="chat-input">
                 <button type="submit" aria-label="Send message" class="send-btn">
                     <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path>
@@ -680,6 +681,7 @@
             </button>
         </div>
     </div>
+    </main>
 
     <!-- Ultra-Lightweight Demand-Driven 60FPS 3D Engine (< 3MB Total RAM) -->
     <script>
@@ -687,6 +689,8 @@
             let isChatOpen = false;
             let isFullPage = false;
             let isReacting = false;
+            let isTyping = false;
+            const chatHistory = [];
             let lastMoveTime = Date.now();
             let lastX = 0, lastY = 0;
             let fabCenterX = 0, fabCenterY = 0;
@@ -722,6 +726,30 @@
             const bubbleText = $('cleo-reaction-text');
             const messages = $('chat-messages');
             const input = $('chat-input');
+            const providerBadge = $('cleo-provider-badge');
+            const providerStatus = $('cleo-status');
+
+            async function refreshProviderStatus() {
+                try {
+                    const response = await fetch('/api/cleo/status', { cache: 'no-store' });
+                    if (!response.ok) throw new Error('Status unavailable');
+                    const data = await response.json();
+                    providerBadge.textContent = data.configured ? 'Groq' : 'AI';
+                    providerStatus.textContent = data.configured ? 'Groq configured' : 'Groq not configured';
+                    providerStatus.title = data.configured
+                        ? 'Groq configured; awaiting a successful response'
+                        : 'GROQ_API_KEY is required on the server';
+                } catch {
+                    providerStatus.textContent = 'Reconnecting…';
+                }
+            }
+
+            function markProviderReady() {
+                providerBadge.textContent = 'Groq';
+                providerStatus.textContent = 'Groq ready';
+                providerStatus.title = 'Responses provided by Groq';
+            }
+            refreshProviderStatus();
 
             function updateMetrics() {
                 const r = cleoFab.getBoundingClientRect();
@@ -972,42 +1000,54 @@
                 row.appendChild(bbl);
                 messages.appendChild(row);
                 messages.scrollTop = messages.scrollHeight;
+                chatHistory.push({ role: sender === 'user' ? 'user' : 'assistant', content: text });
+                if (chatHistory.length > 10) chatHistory.shift();
             }
 
-            function simulateReply(userText) {
+            async function sendToCleo(userText) {
+                if (isTyping) return;
+                isTyping = true;
+                const history = chatHistory.slice(-10, -1).map(message => ({ role: message.role, content: message.content }));
                 const typingRow = document.createElement('div');
                 typingRow.className = 'msg-row';
                 typingRow.innerHTML = '<div class="msg-bubble bot typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
                 messages.appendChild(typingRow);
                 messages.scrollTop = messages.scrollHeight;
 
-                const lower = userText.toLowerCase();
-                let reply = "Got it! I'm Cleo—ultra-lightweight, responsive, and ready whenever you need me.";
-                if (lower.includes('who')) {
-                    reply = "I'm Cleo! With my 3D blue squircle shell, dark visor, and bobbing antenna, I follow your cursor while using near-zero memory.";
-                } else if (lower.includes('fast')) {
-                    reply = "⚡ Featherlight & instant! Zero heavy scripts, demand-driven 60fps animation, and minimal RAM footprint.";
-                }
+                try {
+                    const response = await fetch('/api/cleo/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question: userText, options: { topK: 6 }, history }),
+                    });
+                    if (!response.ok) throw new Error('Request failed');
 
-                setTimeout(() => {
-                    typingRow.remove();
-                    appendMessage('bot', reply);
+                    const data = await response.json();
+                    appendMessage('bot', data.answer || "I couldn't generate an answer. Please try again.");
+                    markProviderReady();
                     if (isFullPage) triggerReaction('happy');
-                }, 420);
+                } catch {
+                    providerStatus.textContent = 'Groq unavailable';
+                    appendMessage('bot', "I'm having trouble connecting right now. Please try again in a moment.");
+                } finally {
+                    typingRow.remove();
+                    isTyping = false;
+                }
             }
 
-            window.handleChatSubmit = function (e) {
+            window.handleChatSubmit = async function (e) {
                 e.preventDefault();
                 const text = input.value.trim();
-                if (!text) return;
+                if (!text || isTyping) return;
                 appendMessage('user', text);
                 input.value = '';
-                simulateReply(text);
+                await sendToCleo(text);
             };
 
-            window.sendQuickPrompt = function (text) {
+            window.sendQuickPrompt = async function (text) {
+                if (isTyping) return;
                 appendMessage('user', text);
-                simulateReply(text);
+                await sendToCleo(text);
             };
         })();
     </script>

@@ -1,112 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kenyan securities regulators, monetary authorities and market infrastructure.">
   <title>Institutions — FinCapita</title>
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="apple-touch-icon" href="/favicon.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .mono { font-family: 'IBM Plex Mono', monospace; }
-    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  </style>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/app.css">
 </head>
-<body class="bg-[#F5F5F7] text-[#111315]">
-
-  <header class="bg-[#0B0B0C] text-white sticky top-0 z-50 border-b border-white/10">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-<a href="/" class="flex items-center gap-2">
-        <img src="/logo.png" alt="FinCapita" class="w-8 h-8 rounded-lg object-contain" />
-        <div>
-          <span class="font-extrabold text-lg tracking-tight">FinCapita</span>
-          <span class="block text-[9px] mono uppercase tracking-widest text-zinc-400">Kenya Markets</span>
-        </div>
-      </a>
-      <nav class="flex items-center gap-1 text-sm font-medium">
-        <a href="/" class="px-3 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/5">All News</a>
-        <a href="/markets.html" class="px-3 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/5">Markets</a>
-        <a href="/companies.html" class="px-3 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/5">Companies</a>
-        <a href="/institutions.html" class="px-3 py-1.5 rounded-lg bg-white/15 text-white font-semibold">Institutions</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="max-w-6xl mx-auto px-4 py-8 space-y-6">
-    <div>
-      <h1 class="text-2xl font-extrabold tracking-tight">Regulators &amp; Market Infrastructure</h1>
-      <p class="text-sm text-gray-500 mt-1">Live notices and news from CBK, CMA, NSE, CDSC, and the National Treasury.</p>
-    </div>
-
-    <div id="institutions" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-  </main>
-
-  <script>
-    const INSTITUTIONS = [
-      { code: 'CBK', name: 'Central Bank of Kenya', role: 'Monetary Authority & Debt Agent', site: 'https://www.centralbank.go.ke' },
-      { code: 'CMA', name: 'Capital Markets Authority', role: 'Capital Markets Regulator', site: 'https://www.cma.or.ke' },
-      { code: 'NSE', name: 'Nairobi Securities Exchange', role: 'Securities Exchange', site: 'https://www.nse.co.ke' },
-      { code: 'CDSC', name: 'Central Depository & Settlement', role: 'Clearing & Settlement', site: 'https://cdsckenya.com' },
-      { code: 'TREASURY', name: 'The National Treasury', role: 'Fiscal & Public Debt Authority', site: 'https://www.treasury.go.ke' },
-    ];
-
-    async function load() {
-      const container = document.getElementById('institutions');
-      container.innerHTML = '<p class="text-sm text-gray-400">Loading institution feeds...</p>';
-
-      try {
-        const results = await Promise.all(
-          INSTITUTIONS.map(async (inst) => {
-            const res = await fetch(`/api/institutions/${inst.code}`);
-            return { inst, data: await res.json() };
-          })
-        );
-
-        container.innerHTML = results
-          .map(
-            ({ inst, data }) => `
-            <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="px-3 py-1 rounded-lg bg-[#0B0B0C] text-white mono text-xs font-bold">${inst.code}</span>
-                <a href="${inst.site}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[#FF4D1C] hover:underline">Official Site ↗</a>
-              </div>
-              <div>
-                <h2 class="font-bold text-lg">${inst.name}</h2>
-                <p class="text-xs text-emerald-600 font-medium">${inst.role}</p>
-              </div>
-              <div class="border-t border-gray-100 pt-3 space-y-2">
-                ${data.articles.length
-                  ? data.articles.slice(0, 5).map(
-                      (a) => `
-                        <a href="${a.originalUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group">
-                          ${a.imageUrl ? `
-                            <div class="w-14 aspect-[4/3] rounded overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                              <img src="${a.imageUrl}" alt="" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.parentElement.style.display='none';" />
-                            </div>
-                          ` : ''}
-                          <div class="flex-1 min-w-0">
-                            <span class="block text-xs font-semibold line-clamp-2 group-hover:text-[#FF4D1C]">${a.title}</span>
-                            <span class="block text-[10px] text-gray-400 mt-0.5">${new Date(a.publishedAt).toLocaleDateString('en-KE')} · ${a.sourceName}</span>
-                          </div>
-                        </a>
-                      `
-                    ).join('')
-                  : '<p class="text-xs text-gray-400">No recent articles matched this institution in the current feed window.</p>'
-                }
-              </div>
-            </div>
-          `
-          )
-          .join('');
-      } catch (e) {
-        container.innerHTML = '<p class="text-sm text-red-500">Failed to load institution feeds. Check the server.</p>';
-      }
-    }
-
-    load();
-  </script>
-  <script src="cleo-widget.js"></script>
+<body data-page="institutions" class="bg-white text-[#111315] dark:bg-[#0C0D10] dark:text-[#F3F4F6] font-sans antialiased selection:bg-[#FF4D1C] selection:text-white overflow-x-hidden">
+  <div id="site-shell"></div>
+  <main id="app-workspace" class="w-full min-w-0 max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-9 break-words"></main>
+  <script src="/core.js"></script>
+  <script src="/institutions.js"></script>
+  <script src="/cleo-widget.js"></script>
 </body>
 </html>
