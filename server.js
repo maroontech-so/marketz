@@ -13,6 +13,7 @@ if (typeof dns.setDefaultResultOrder === 'function') {
 }
 
 require('dotenv').config();
+const fs = require('fs');
 const express = require('express');
 const Parser = require('rss-parser');
 const crypto = require('crypto');
@@ -441,13 +442,13 @@ async function llmRewrite(text, sourceName) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GROQ_MODEL || 'mixtral-8x7b-32768';
+  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
   const reasoningEffort = process.env.GROQ_REASONING_EFFORT || 'low';
   const baseUrl = 'https://api.groq.com/openai/v1';
 
   const system = `You are a wire-service editor. Rewrite the article below in 3-5 short factual paragraphs of neutral prose. Preserve every name, number, date, and quoted phrase exactly. Do not add facts not present in the original. Output plain text only.`;
 
-  const userPrompt = `Source: ${sourceName}\n\n${text.slice(0, 3000)}`;
+  const userPrompt = `Source: ${sourceName}\n\n${text.slice(0, 6000)}`;
   const estimated = groqEstimateTokens(system) + groqEstimateTokens(userPrompt) + 600;
 
   try {
@@ -466,7 +467,7 @@ async function llmRewrite(text, sourceName) {
               { role: 'user', content: userPrompt },
             ],
             temperature: 0.2,
-            max_completion_tokens: 600,
+            max_completion_tokens: 1500,
             reasoning_effort: reasoningEffort,
           }),
           signal: controller.signal,
@@ -823,8 +824,12 @@ async function ingestAll() {
 // ---------------------------------------------------------------------------
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 app.use(express.json());
+
+// ---------------------------------------------------------------------------
+// CALENDAR PAGE — handled by handleCalendarPage (async, Mansa + Apify backed)
+// ---------------------------------------------------------------------------
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function createRateLimiter(windowMs, maxRequests) {
@@ -912,6 +917,503 @@ function handleSources(req, res) {
 }
 app.get('/api/sources', handleSources);
 app.get('/api/v1/sources', handleSources);
+
+// ---------------------------------------------------------------------------
+// CORPORATE ACTIONS CALENDAR — REAL DATA FROM MANSA API + APIFY
+// Mansa API provides NSE stock reference data (tickers → company names).
+// Apify web-scraper extracts NSE corporate announcements (dividends, AGMs,
+// earnings, book closures, rights issues, bond maturities) from nse.co.ke.
+// Falls back to attributed site coverage when providers are unavailable.
+// ---------------------------------------------------------------------------
+
+const MANSA_API_KEY = typeof process.env.MANSA_API_KEY === 'string' ? process.env.MANSA_API_KEY.trim() : '';
+const APIFY_API_KEY = typeof process.env.APIFY_API_KEY === 'string' ? process.env.APIFY_API_KEY.trim() : '';
+const APIFY_ACTOR_ID = 'apify/web-scraper';
+
+const CALENDAR_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS corporate_calendar_cache (
+    id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    event_type_label TEXT NOT NULL,
+    event_type_color TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    event_date_eat TEXT NOT NULL,
+    ticker TEXT,
+    tickers TEXT,
+    title TEXT NOT NULL,
+    summary TEXT,
+    source_name TEXT NOT NULL,
+    source_url TEXT,
+    source TEXT NOT NULL,
+    published_at TEXT,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_calendar_cache_date ON corporate_calendar_cache(event_date);
+  CREATE INDEX IF NOT EXISTS idx_calendar_cache_expires ON corporate_calendar_cache(expires_at);
+`);
+
+async function fetchMansa(path, key) {
+  const response = await fetchWithTimeout(new URL(path.replace(/^\/+/, ''), PROVIDER_BASE), {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Mansa API request failed with HTTP ${response.status}.`);
+  }
+  const payload = await response.json();
+  if (payload?.success === false) throw new Error('Mansa API returned an unsuccessful response.');
+  return payload;
+}
+
+async function fetchNseStocks(key) {
+  try {
+    const payload = await fetchMansa('/markets/exchanges/NSE/stocks?limit=200', key);
+    const records = extractRecords(payload, 'stock');
+    const map = new Map();
+    for (const record of records) {
+      const ticker = firstString(record, ['ticker', 'symbol', 'code', 'stock_code', 'stockCode']);
+      const name = firstString(record, ['name', 'company_name', 'companyName', 'title']);
+      if (ticker && name) map.set(ticker.toUpperCase(), { ticker: ticker.toUpperCase(), name });
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+async function fetchApifyCalendar() {
+  if (!APIFY_API_KEY) return [];
+
+  try {
+    const runResponse = await fetchWithTimeout(
+      `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/runs?token=${APIFY_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startUrls: [{ url: 'https://www.nse.co.ke/corporate-announcements' }],
+          pageFunction: `
+            function pageFunction(context) {
+              const { $, log } = context;
+              const results = [];
+              $('article, .announcement, .corporate-announcement, .news-item, .disclosure, tr, .row').each((i, el) => {
+                const $el = $(el);
+                const title = $el.find('h1, h2, h3, .title, .headline, a').first().text().trim() || $el.text().trim().slice(0, 200);
+                const dateText = $el.find('time, .date, .published, .timestamp').first().attr('datetime') || $el.find('.date').first().text().trim();
+                const link = $el.find('a').first().attr('href');
+                const summary = $el.find('.summary, .excerpt, .description, p').first().text().trim() || $el.text().trim().slice(200, 500);
+                if (title && title.length > 10) {
+                  results.push({ title, date: dateText || new Date().toISOString(), url: link, summary });
+                }
+              });
+              return results;
+            }
+          `,
+          proxyConfiguration: { useApifyProxy: true },
+        }),
+      }
+    );
+
+    const runData = await runResponse.json();
+    const runId = runData.data?.id;
+    if (!runId) throw new Error('Apify run did not return an ID.');
+
+    let items = [];
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const statusResponse = await fetchWithTimeout(
+        `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/runs/${runId}?token=${APIFY_API_KEY}`
+      );
+      const statusData = await statusResponse.json();
+      const status = statusData.data?.status;
+      if (status === 'SUCCEEDED') {
+        const datasetId = statusData.data?.defaultDatasetId;
+        if (datasetId) {
+          const itemsResponse = await fetchWithTimeout(
+            `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_API_KEY}`
+          );
+          items = await itemsResponse.json();
+        }
+        break;
+      }
+      if (status === 'FAILED' || status === 'ABORTED') break;
+    }
+
+    return Array.isArray(items) ? items : [];
+  } catch {
+    return [];
+  }
+}
+
+const MONTHS = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7,
+  sep: 8, oct: 9, nov: 10, dec: 11,
+};
+const MONTH_RE = '(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
+
+function parseCalendarDate(text, fallbackIso) {
+  const t = String(text || '');
+  const fallback = fallbackIso ? new Date(fallbackIso) : new Date();
+  const candidate = (year, month, date) => {
+    const d = new Date(Date.UTC(year, month, date));
+    if (Number.isNaN(d.getTime()) || d.getUTCDate() !== date || d.getUTCMonth() !== month) return null;
+    return d.toISOString();
+  };
+  const iso = t.match(/(\d{4})-(\d{2})-(\d{2})(?:[T ]\d{2}:\d{2})?/);
+  if (iso) { const r = candidate(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])); if (r) return r; }
+  const dmy = new RegExp(`(\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH_RE}\\w*\\s*,?\\s*(\\d{4})`, 'i').exec(t);
+  if (dmy) { const r = candidate(Number(dmy[3]), MONTHS[dmy[2].toLowerCase()], Number(dmy[1])); if (r) return r; }
+  const mdy = new RegExp(`${MONTH_RE}\\w*\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s*,?\s*(\\d{4})`, 'i').exec(t);
+  if (mdy) { const r = candidate(Number(mdy[3]), MONTHS[mdy[1].toLowerCase()], Number(mdy[2])); if (r) return r; }
+  const noYear = new RegExp(`(\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH_RE}\\w*`, 'i').exec(t);
+  if (noYear) {
+    const month = MONTHS[noYear[2].toLowerCase()];
+    const date = Number(noYear[1]);
+    const year = new Date(Date.UTC(fallback.getUTCFullYear(), month, date)) >= fallback ? fallback.getUTCFullYear() : fallback.getUTCFullYear() + 1;
+    const r = candidate(year, month, date);
+    if (r) return r;
+  }
+  return fallback.toISOString();
+}
+
+function classifyCalendarEvent(title, summary) {
+  const text = `${title || ''} ${summary || ''}`.toLowerCase();
+  if (/rights\s*.?\s*issue/.test(text)) return 'rights_issue';
+  if (/bond/.test(text) && /matur|maturing|maturity|redeem|redemption/.test(text)) return 'bond_maturity';
+  if (/book\s*.?\s*closure|book-closure|record date/.test(text)) return 'book_closure';
+  if (/\bagm\b|annual general meeting/.test(text)) return 'agm';
+  if (/dividend/.test(text)) return 'dividend';
+  if (/earnings|results|profit|financial results|half.year|full.year|interim results|quarterly results/.test(text)) return 'earnings';
+  return null;
+}
+
+const CALENDAR_LABELS = {
+  dividend: 'Dividend declaration',
+  book_closure: 'Book closure / record date',
+  agm: 'Annual general meeting',
+  earnings: 'Earnings announcement',
+  rights_issue: 'Rights issue',
+  bond_maturity: 'Bond maturity',
+};
+const CALENDAR_COLORS = {
+  dividend: 'text-[#FF4D1C] dark:text-[#FF6A3D]',
+  book_closure: 'text-[#7C3AED] dark:text-[#A78BFA]',
+  agm: 'text-[#2563EB] dark:text-[#4D94FF]',
+  earnings: 'text-[#15803D] dark:text-[#34D399]',
+  rights_issue: 'text-[#4F46E5] dark:text-[#6366F1]',
+  bond_maturity: 'text-[#475569] dark:text-[#94A3B8]',
+};
+
+function buildCalendarEvent({ id, title, eventType, eventDate, ticker, tickers, summary, sourceName, sourceUrl, source, publishedAt }) {
+  const labelMap = {
+    dividend: 'Dividend declaration',
+    book_closure: 'Book closure / record date',
+    agm: 'Annual general meeting',
+    earnings: 'Earnings announcement',
+    rights_issue: 'Rights issue',
+    bond_maturity: 'Bond maturity',
+  };
+  const colorMap = {
+    dividend: 'text-[#FF4D1C] dark:text-[#FF6A3D]',
+    book_closure: 'text-[#7C3AED] dark:text-[#A78BFA]',
+    agm: 'text-[#2563EB] dark:text-[#4D94FF]',
+    earnings: 'text-[#15803D] dark:text-[#34D399]',
+    rights_issue: 'text-[#4F46E5] dark:text-[#6366F1]',
+    bond_maturity: 'text-[#475569] dark:text-[#94A3B8]',
+  };
+  const eventDateEat = new Date(eventDate).toLocaleString('en-GB', { timeZone: 'Africa/Nairobi', day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' }) + ' EAT';
+  return {
+    id,
+    title,
+    eventType,
+    eventTypeLabel: labelMap[eventType] || eventType,
+    eventTypeColor: colorMap[eventType] || colorMap.bond_maturity,
+    eventDate,
+    eventDateEat,
+    ticker: ticker || null,
+    tickers: tickers || [],
+    summary: summary || null,
+    sourceName,
+    sourceUrl: sourceUrl || null,
+    source,
+    publishedAt: publishedAt || null,
+  };
+}
+
+async function fetchCorporateCalendar() {
+  const now = Date.now();
+
+  // Check cache first
+  const cachedRows = db.prepare('SELECT * FROM corporate_calendar_cache WHERE expires_at > ?').all(now);
+  if (cachedRows.length > 0) {
+    return cachedRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      eventType: row.event_type,
+      eventTypeLabel: row.event_type_label,
+      eventTypeColor: row.event_type_color,
+      eventDate: row.event_date,
+      eventDateEat: row.event_date_eat,
+      ticker: row.ticker,
+      tickers: row.tickers ? JSON.parse(row.tickers) : [],
+      summary: row.summary,
+      sourceName: row.source_name,
+      sourceUrl: row.source_url,
+      source: row.source,
+      publishedAt: row.published_at,
+    }));
+  }
+
+  // Clear expired cache
+  db.prepare('DELETE FROM corporate_calendar_cache WHERE expires_at <= ?').run(now);
+
+  const events = [];
+  const seen = new Set();
+
+  // Source 1: Mansa API — NSE stocks reference data (for ticker → company mapping)
+  let nseStocks = new Map();
+  if (MANSA_API_KEY) {
+    nseStocks = await fetchNseStocks(MANSA_API_KEY);
+  }
+
+  // Source 2: Apify — NSE corporate announcements scraping
+  let apifyItems = [];
+  if (APIFY_API_KEY) {
+    apifyItems = await fetchApifyCalendar();
+  }
+
+  // Process Apify items into calendar events
+  for (const item of apifyItems) {
+    const title = item.title || item.name || '';
+    const summary = item.summary || item.description || '';
+    const fullText = `${title} ${summary}`;
+    const type = classifyCalendarEvent(fullText);
+    if (!type) continue;
+
+    const eventDate = parseCalendarDate(fullText, new Date().toISOString());
+    const eventDateObj = new Date(eventDate);
+    if (Number.isNaN(eventDateObj.getTime())) continue;
+
+    // Try to match ticker from title/summary using NSE stocks map
+    let matchedTicker = null;
+    const upperText = fullText.toUpperCase();
+    for (const [ticker] of nseStocks) {
+      if (upperText.includes(ticker)) {
+        matchedTicker = ticker;
+        break;
+      }
+    }
+
+    const key = `apify:${type}:${matchedTicker || 'unknown'}:${eventDate}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const sourceName = item.sourceName || item.source || 'NSE Corporate Announcements';
+    const sourceUrl = item.url || item.link || 'https://www.nse.co.ke';
+
+    events.push(buildCalendarEvent({
+      id: key,
+      title,
+      eventType: type,
+      eventDate,
+      ticker: matchedTicker,
+      tickers: matchedTicker ? [matchedTicker] : [],
+      summary,
+      sourceName,
+      sourceUrl,
+      source: 'apify',
+      publishedAt: item.publishedAt || item.date || new Date().toISOString(),
+    }));
+  }
+
+  // Source 3: Existing articles as fallback (only if providers returned nothing)
+  if (events.length === 0) {
+    const rows = db.prepare(`
+      SELECT * FROM articles
+       WHERE category IN ('corporate_developments', 'fixed_income')
+       ORDER BY published_at DESC
+       LIMIT 300
+    `).all();
+    for (const row of rows) {
+      const type = classifyCalendarEvent(row.title, row.summary);
+      if (!type) continue;
+      const eventDate = parseCalendarDate(`${row.title} ${row.summary || ''}`, row.published_at);
+      const eventDateObj = new Date(eventDate);
+      if (Number.isNaN(eventDateObj.getTime())) continue;
+      const key = `article:${row.id}:${type}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const tickers = (row.tickers && row.tickers !== '[]') ? JSON.parse(row.tickers) : extractTickers(`${row.title} ${row.summary || ''}`);
+      events.push(buildCalendarEvent({
+        id: key,
+        title: row.title,
+        eventType: type,
+        eventDate,
+        ticker: tickers[0] || null,
+        tickers,
+        summary: row.summary || null,
+        sourceName: row.source_name,
+        sourceUrl: row.resolved_url || row.original_url,
+        source: 'articles',
+        publishedAt: row.published_at,
+      }));
+    }
+  }
+
+  events.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+
+  // Cache the results
+  const expiresAt = now + CALENDAR_CACHE_TTL_MS;
+  const insert = db.prepare('INSERT OR REPLACE INTO corporate_calendar_cache (id, event_type, event_type_label, event_type_color, event_date, event_date_eat, ticker, tickers, title, summary, source_name, source_url, source, published_at, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  for (const event of events) {
+    insert.run(
+      event.id,
+      event.eventType,
+      event.eventTypeLabel,
+      event.eventTypeColor,
+      event.eventDate,
+      event.eventDateEat,
+      event.ticker,
+      JSON.stringify(event.tickers),
+      event.title,
+      event.summary,
+      event.sourceName,
+      event.sourceUrl,
+      event.source,
+      event.publishedAt,
+      now,
+      expiresAt,
+    );
+  }
+
+  return events;
+}
+
+async function handleCalendarPage(req, res) {
+  let html;
+  try {
+    html = fs.readFileSync(path.join(__dirname, 'public', 'calendar.html'), 'utf8');
+  } catch {
+    res.status(404).send('Calendar page not found');
+    return;
+  }
+  try {
+    const events = await fetchCorporateCalendar();
+    const payload = JSON.stringify(events).replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
+    html = html.replace(
+      '<script src="/calendar.js"></script>',
+      `<script>window.__CALENDAR_EVENTS__ = ${payload};</script><script src="/calendar.js"></script>`
+    );
+    res.type('text/html').send(html);
+  } catch (error) {
+    res.type('text/html').send(html);
+  }
+}
+
+function handleCalendar(req, res) {
+  const fromRaw = typeof req.query.from === 'string' ? req.query.from : null;
+  const toRaw = typeof req.query.to === 'string' ? req.query.to : null;
+  const from = fromRaw ? new Date(fromRaw) : null;
+  const to = toRaw ? new Date(toRaw) : null;
+
+  fetchCorporateCalendar().then((allEvents) => {
+    let events = allEvents;
+    if (from) events = events.filter((e) => new Date(e.eventDate) >= from);
+    if (to) events = events.filter((e) => new Date(e.eventDate) <= new Date(to + 'T23:59:59'));
+
+    // Arrange top first: today's events, then upcoming dates ascending, then past dates descending
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().slice(0, 10);
+    const todayEvents = [];
+    const upcoming = [];
+    const past = [];
+    for (const e of events) {
+      const d = new Date(e.eventDate);
+      const dateStr = d.toISOString().slice(0, 10);
+      if (dateStr === todayStr) todayEvents.push(e);
+      else if (d >= today) upcoming.push(e);
+      else past.push(e);
+    }
+    upcoming.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+    past.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
+    events = [...todayEvents, ...upcoming, ...past];
+
+    res.json({
+      ok: true,
+      count: events.length,
+      generatedAt: new Date().toISOString(),
+      events,
+    });
+  }).catch((error) => {
+    res.status(500).json({ ok: false, error: error.message, events: [] });
+  });
+}
+
+app.get('/calendar', handleCalendarPage);
+app.get('/api/calendar', handleCalendar);
+app.get('/api/v1/calendar', handleCalendar);
+
+// ---------------------------------------------------------------------------
+// CORPORATE LOGOS — Clearbit autocomplete + logo.dev
+// ---------------------------------------------------------------------------
+const LOGO_DEV_TOKEN = 'pk_NElI-AhVS-qP7iOLicx2zg';
+
+app.get('/api/logos', async (req, res) => {
+  const query = req.query.q?.trim();
+  if (!query) return res.status(400).json({ error: 'Missing "q" parameter' });
+
+  try {
+    const url = `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(query)}`;
+    const r = await fetch(url);
+
+    if (!r.ok) return res.status(r.status).json({ error: `Lookup failed (${r.status})` });
+
+    const data = await r.json();
+
+    const results = data.map((c) => ({
+      name: c.name,
+      domain: c.domain,
+      logo: `https://img.logo.dev/${c.domain}?token=${LOGO_DEV_TOKEN}&size=400`,
+      favicon: `https://www.google.com/s2/favicons?domain=${c.domain}&sz=128`,
+    }));
+
+    res.json(results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/download', async (req, res) => {
+  const { url, name } = req.query;
+  if (!url) return res.status(400).send('URL required');
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch image');
+
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/png';
+
+    const ext = contentType.split('/')[1] || 'png';
+    const safeName = (name || 'logo').replace(/[^a-z0-9]/gi, '_');
+    const filename = `${safeName}.${ext}`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', contentType);
+    res.send(Buffer.from(arrayBuffer));
+  } catch (err) {
+    console.error('Download error:', err);
+    res.status(500).send('Error downloading image');
+  }
+});
+
 
 // ---------------------------------------------------------------------------
 // SINGLE ARTICLE ENDPOINT — dedicated article page data source

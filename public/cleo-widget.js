@@ -28,6 +28,7 @@
   const MAX_SUGGESTIONS = 8;
   let chatHistory = [];
   let userSuggestions = [];
+  let aiHasResponded = false;
 
   const CATEGORY_LABELS = {
     equity_markets: 'Equities',
@@ -53,6 +54,7 @@
       if (stored) {
         const parsed = JSON.parse(stored);
         chatHistory = Array.isArray(parsed) ? parsed.slice(-MAX_HISTORY_MESSAGES) : [];
+      aiHasResponded = chatHistory.some((m) => m.role === 'assistant');
       }
       const sugg = localStorage.getItem(SUGGESTIONS_KEY);
       if (sugg) {
@@ -1241,6 +1243,10 @@
   function renderSuggestions() {
     const container = $('quick-prompts');
     if (!container) return;
+    if (aiHasResponded) {
+      container.style.display = 'none';
+      return;
+    }
     const suggestions = getSuggestions();
     if (suggestions.length === 0) {
       container.style.display = 'none';
@@ -1397,7 +1403,13 @@
         });
         bbl.appendChild(sourcesDiv);
       }
+    } else {
+      bbl.textContent = text;
+    }
 
+    row.appendChild(bbl);
+
+    if (sender === 'assistant') {
       const followups = generateFollowups(text, sources || []);
       if (followups.length > 0) {
         const suggDiv = document.createElement('div');
@@ -1411,13 +1423,12 @@
           button.addEventListener('click', () => sendQuickPrompt(suggestion));
           suggDiv.appendChild(button);
         });
-        bbl.appendChild(suggDiv);
+        row.appendChild(suggDiv);
       }
-    } else {
-      bbl.textContent = text;
+      aiHasResponded = true;
+      renderSuggestions();
     }
 
-    row.appendChild(bbl);
     messages.appendChild(row);
     messages.scrollTop = messages.scrollHeight;
 
@@ -1562,6 +1573,6 @@
     open: () => { if (!isOpen) toggleChat(); },
     close: toggleChat,
     ask: (q) => { const input = $('chat-input'); if (input) input.value = q; window.handleChatSubmit({ preventDefault: () => {} }); },
-    clearHistory: () => { chatHistory = []; userSuggestions = []; saveHistory(); const messages = $('chat-messages'); if (messages) messages.innerHTML = ''; restoreChat(); renderSuggestions(); },
+    clearHistory: () => { chatHistory = []; userSuggestions = []; aiHasResponded = false; saveHistory(); const messages = $('chat-messages'); if (messages) messages.innerHTML = ''; restoreChat(); renderSuggestions(); },
   };
 })();

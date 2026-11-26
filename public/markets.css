@@ -1,5 +1,3 @@
-.market-hero { position: relative; isolation: isolate; background: radial-gradient(circle at 88% 0%, rgba(255,77,28,.22), transparent 35%), linear-gradient(125deg, #090a0c 0%, #15181e 60%, #20242c 100%); }
-.market-hero::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: .1; background-image: linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px); background-size: 36px 36px; mask-image: linear-gradient(to left, #000, transparent 75%); }
 .market-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 1.25rem; min-width: 0; }
 .dark .market-card { background: #12141a; border-color: #27272a; }
 .metric-card { position: relative; overflow: hidden; }
@@ -21,11 +19,12 @@
 .heat-cell { min-height: 86px; transition: transform .18s ease, filter .18s ease; }
 .heat-cell:hover { transform: translateY(-2px); filter: brightness(1.04); }
 .status-pill { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.07); border-radius: 999px; padding: .35rem .65rem; color: #e4e4e7; font-size: .65rem; white-space: nowrap; }
+.dark .status-pill { border-color: rgba(0,0,0,.3); background: rgba(0,0,0,.3); color: #e4e4e7; }
 .spinning { animation: market-spin .8s linear infinite; }
 @keyframes market-spin { to { transform: rotate(360deg); } }
 @media (max-width: 639px) {
   .chart-box { height: 250px; }
   .chart-box.tall { height: 290px; }
   .market-card { border-radius: 1rem; }
-  .data-table th, .data-table td { padding-left: .75rem; padding-right: .75rem; }
+  .data-table th, .data-table td { padding-left: .5rem; padding-right: .5rem; }
 }

@@ -32,10 +32,9 @@
     { id: 'frontpage', label: 'All News', href: 'index.html' },
     { id: 'markets', label: 'Markets', href: 'markets.html' },
     { id: 'companies', label: 'Companies', href: 'companies.html' },
-    { id: 'institutions', label: 'Institutions', href: 'institutions.html' },
-    { id: 'tools', label: 'Research & Tools', href: 'tools.html' },
+    { id: 'calendar', label: 'Corporate Calendar', href: 'calendar.html' },
+    { id: 'logos', label: 'Corporate Logos', href: 'logos.html' },
     { id: 'saved', label: 'Saved & Alerts', href: 'saved.html' },
-    { id: 'sources', label: 'Sources', href: 'sources.html' },
   ];
   const STORAGE_KEY = 'kcmip_prototype_v5';
   const defaults = {
@@ -249,8 +248,6 @@
     drawer.classList.toggle('hidden');
     document.querySelector('[aria-controls="multi-filter-drawer"]')?.setAttribute('aria-expanded', String(!drawer.classList.contains('hidden')));
   }
-  function openPricingModal() { document.getElementById('pricing-modal').classList.remove('hidden'); }
-  function closePricingModal() { document.getElementById('pricing-modal').classList.add('hidden'); }
   function navigateFeed(params = {}) {
     const query = new URLSearchParams();
     if (params.category && params.category !== 'all') query.set('category', params.category);
@@ -294,7 +291,7 @@
     document.getElementById('top-nav-links').innerHTML = NAV_PAGES.map((item) => `<a href="${item.href}" class="px-3 py-1.5 rounded-lg transition-colors ${currentIssuer === item.id ? 'text-white bg-white/15 font-semibold' : 'text-zinc-300 hover:text-white hover:bg-white/5'}" ${currentIssuer === item.id ? 'aria-current="page"' : ''}>${item.label}${item.id === 'saved' ? savedBadge : ''}</a>`).join('');
     document.getElementById('mobile-nav-links').innerHTML = NAV_PAGES.map((item) => `<a href="${item.href}" onclick="toggleMobileDrawer()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium ${currentIssuer === item.id ? 'bg-[#FF4D1C] text-white font-bold' : 'text-zinc-300 hover:bg-white/10'}">${item.label}${item.id === 'saved' ? savedBadge : ''}</a>`).join('');
   }
-  function injectShell() {
+function injectShell() {
     document.getElementById('site-shell').innerHTML = `
       <header class="sticky top-0 z-40 bg-[#0B0B0C] text-white border-b border-white/10">
         <div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
@@ -302,20 +299,19 @@
           <nav id="top-nav-links" class="hidden lg:flex items-center gap-1 text-[13px] font-medium" aria-label="Primary navigation"></nav>
           <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button onclick="refreshCurrent()" title="Refresh current page" class="hidden sm:inline-flex p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 0 0 5.1 6.1M4 16a8 8 0 0 0 14.9 1.9"/></svg></button>
+            <div id="currency-ticker" class="fx-ticker flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px]" aria-live="polite">
+               <span id="fx-mobile" class="flex flex-col items-center gap-0.5">
+                 <span id="fx-mobile-rate" class="text-sm font-extrabold tabular text-white">—</span>
+                 <span id="fx-mobile-pair" class="text-[9px] text-zinc-500 uppercase">USD/KES</span>
+               </span>
+             </div>
             <button onclick="toggleTheme()" title="Toggle light or dark theme" class="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10"><svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41-1.41"/></svg><svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-            <button onclick="openPricingModal()" class="px-3 sm:px-4 py-2 rounded-lg bg-[#FF4D1C] hover:bg-[#E03D10] text-white font-display font-bold text-xs"><span class="sm:hidden">Pro</span><span class="hidden sm:inline">Subscribe</span></button>
             <button onclick="toggleMobileDrawer()" class="lg:hidden p-2 rounded-lg bg-white/10 text-white" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-drawer"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
           </div>
         </div>
         <div class="bg-[#F5F5F7] dark:bg-[#14161B] text-[#111315] dark:text-zinc-200 border-b border-[#E5E7EB] dark:border-zinc-800">
           <div class="utility-row max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-3">
             <button onclick="toggleFilterBar()" aria-label="Toggle filters" aria-controls="multi-filter-drawer" aria-expanded="false" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[#0B0B0C] dark:bg-zinc-800 text-white text-xs font-medium shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h10M4 18h14"/></svg><span class="hidden sm:inline">Filters</span></button>
-            <div id="currency-ticker" class="fx-ticker flex items-center justify-center sm:justify-start gap-1.5 px-1.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 font-mono text-[10px] sm:text-[11px]" aria-live="polite">
-              <span class="hidden sm:inline text-zinc-500">FX</span>
-              <span id="fx-mobile" class="hidden items-center gap-1.5">Loading CBK rates…</span>
-              <span id="fx-desktop" class="hidden sm:flex items-center gap-2"></span>
-              <span id="fx-source" class="hidden xl:inline text-zinc-400 ml-1">CBK daily</span>
-            </div>
             <div class="search-shell relative flex items-center"><input id="global-search" type="search" placeholder="Search SCOM, CBK, IFB…" oninput="handleSearch(this.value)" class="w-full transition-all pl-3 pr-8 py-1.5 rounded-md bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-xs text-[#111315] dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-[#FF4D1C]"><svg class="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.3-4.3"/></svg></div>
           </div>
           <div id="multi-filter-drawer" class="hidden border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#111318]">
@@ -326,9 +322,8 @@
           </div>
         </div>
       </header>
-      <div id="mobile-drawer" class="fixed inset-0 z-50 hidden lg:hidden"><div onclick="toggleMobileDrawer()" class="fixed inset-0 bg-black/60"></div><div class="relative w-72 max-w-[82vw] h-full bg-[#0B0B0C] text-white p-5 flex flex-col justify-between z-10"><div><div class="flex items-center justify-between pb-4 border-b border-white/10"><span class="font-display font-extrabold text-base">FinCapita</span><button onclick="toggleMobileDrawer()" class="p-1.5 rounded-md bg-white/10 text-xs" aria-label="Close menu">✕</button></div><nav id="mobile-nav-links" class="mt-4 flex flex-col gap-1" aria-label="Mobile navigation"></nav></div><button onclick="toggleMobileDrawer();openPricingModal()" class="w-full py-2.5 rounded-lg bg-[#FF4D1C] text-white font-display font-bold text-xs">Subscribe · Intelligence Pro</button></div></div>
+      <div id="mobile-drawer" class="fixed inset-0 z-50 hidden lg:hidden"><div onclick="toggleMobileDrawer()" class="fixed inset-0 bg-black/60"></div><div class="relative w-72 max-w-[82vw] h-full bg-[#0B0B0C] text-white p-5 flex flex-col justify-between z-10"><div><div class="flex items-center justify-between pb-4 border-b border-white/10"><span class="font-display font-extrabold text-base">FinCapita</span><button onclick="toggleMobileDrawer()" class="p-1.5 rounded-md bg-white/10 text-xs" aria-label="Close menu">✕</button></div><nav id="mobile-nav-links" class="mt-4 flex flex-col gap-1" aria-label="Mobile navigation"></nav></div><button onclick="toggleMobileDrawer()" class="w-full py-2.5 rounded-lg bg-[#FF4D1C] text-white font-display font-bold text-xs">Open menu</button></div></div>
       <footer id="site-footer" class="border-t border-[#E5E7EB] dark:border-zinc-800 bg-[#F5F5F7] dark:bg-[#111318] mt-14"><div class="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400"><div><div class="font-display font-bold text-sm text-[#111315] dark:text-white">FinCapita · Kenya Capital Markets Intelligence</div><p class="mt-1 max-w-2xl">Independent market intelligence and research utilities. Not a broker, exchange, or investment adviser.</p></div><div class="font-mono text-[10px] sm:text-[11px] sm:text-right">SOURCE-ATTRIBUTED · KES<br><span id="footer-stat">CBK · NSE · CMA · CDSC</span></div></div></footer>
-      <div id="pricing-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="FinCapita plans"><div onclick="closePricingModal()" class="fixed inset-0 bg-black/65"></div><div class="relative w-full max-w-2xl bg-white dark:bg-[#12141A] rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 shadow-2xl overflow-hidden z-10 max-h-[90dvh] overflow-y-auto"><div class="p-6 border-b border-[#E5E7EB] dark:border-zinc-800 bg-[#0B0B0C] text-white"><span class="text-[10px] font-mono uppercase tracking-wider text-[#FF4D1C]">FinCapita access</span><h2 class="font-display font-extrabold text-2xl mt-2">Public intelligence. Professional workflows.</h2><p class="text-zinc-300 text-xs mt-2">Public market news, official CBK series and research tools are available without an account.</p></div><div class="p-6 grid sm:grid-cols-2 gap-4"><div class="p-5 rounded-xl border border-[#E5E7EB] dark:border-zinc-800"><div class="text-xs font-bold uppercase text-zinc-500">Public</div><div class="font-display font-extrabold text-3xl mt-2">Free</div><ul class="mt-4 space-y-2 text-xs text-zinc-600 dark:text-zinc-300"><li>Attributed market news</li><li>Official rates and Treasury data</li><li>Research tools and watchlists</li></ul></div><div class="p-5 rounded-xl border-2 border-[#FF4D1C]"><div class="text-xs font-bold uppercase text-[#FF4D1C]">Professional workspace</div><div class="font-display font-extrabold text-3xl mt-2">Enquiry</div><p class="text-xs text-zinc-500 mt-4">Licensed NSE data, API access and team workflows require an appropriately licensed commercial feed.</p><button onclick="closePricingModal();showToast('Use the institution contact form to request a licensed workspace')" class="mt-5 w-full py-2.5 rounded-lg bg-[#FF4D1C] text-white text-xs font-bold">Request access</button></div></div><button onclick="closePricingModal()" class="absolute top-4 right-4 p-2 rounded-lg bg-white/10 text-white text-xs font-mono">ESC</button></div></div>
       <div id="toast" class="fixed bottom-5 right-5 z-[70] pointer-events-none opacity-0 transition-opacity duration-200"><div class="px-4 py-2.5 rounded-xl bg-[#0B0B0C] text-white text-xs shadow-xl border border-white/10 flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#FF4D1C]"></span><span id="toast-msg">Ready</span></div></div>`;
     const footer = document.getElementById('site-footer');
     if (footer) root.after(footer);
@@ -348,22 +343,21 @@
   }
   function renderFX() {
     const data = fx.data;
-    const mobile = document.getElementById('fx-mobile');
-    const desktop = document.getElementById('fx-desktop');
-    const source = document.getElementById('fx-source');
-    if (!mobile || !desktop || !source) return;
+    const mobileRate = document.getElementById('fx-mobile-rate');
+    const mobilePair = document.getElementById('fx-mobile-pair');
+    if (!mobileRate || !mobilePair) return;
     if (!data?.available || !data.pairs?.length) {
-      mobile.textContent = 'CBK FX unavailable';
-      desktop.textContent = 'CBK FX unavailable';
-      source.textContent = 'Retrying';
+      mobileRate.textContent = '—';
+      mobilePair.textContent = 'CBK FX unavailable';
       return;
     }
     const pair = data.pairs[fx.index % data.pairs.length];
     const digits = ['JPY', 'BIF', 'RWF', 'UGX', 'TZS'].includes(pair.code) ? 4 : 2;
-    mobile.innerHTML = `<span>${escHtml(pair.code)}/KES</span><strong class="text-emerald-600 dark:text-emerald-400">${formatNumber(pair.rate, digits)}</strong><span class="text-zinc-400">rotates 60s</span>`;
+    const rate = formatNumber(pair.rate, digits);
+    mobileRate.textContent = rate;
+    mobileRate.className = 'text-xl font-extrabold tabular text-emerald-600 dark:text-emerald-400';
+    mobilePair.textContent = `${escHtml(pair.code)}/KES`;
     document.getElementById('currency-ticker').title = `${data.source || 'Central Bank of Kenya'} daily reference rate for ${formatDate(data.asOf, { day: '2-digit', month: 'short', year: 'numeric' })}`;
-    desktop.innerHTML = data.pairs.map(fxPairValue).join('');
-    source.textContent = `${data.stale ? 'Stale · ' : ''}CBK ${formatDate(data.asOf, { day: '2-digit', month: 'short' })}`;
   }
   function refreshFX() {
     if (fx.promise) return fx.promise;
@@ -393,8 +387,7 @@
     escHtml, safeUrl, secureImageUrl, fetchJSON, saveState, normalizeArticle, loadNews, timeAgo, formatEAT, formatDate,
     canDisplayArticleImage, formatCompact, formatNumber, percent, tone, isSaved, articleImage, noImageHeader, articleUrl, issuerUrl, sourceByline,
     openArticle, openIssuer, renderGridCard, renderSkeleton, renderError, renderEmpty, pageHeading, showToast,
-    toggleSaveArticle, toggleWatchlist, toggleTheme, toggleMobileDrawer, toggleFilterBar, openPricingModal,
-    closePricingModal, navigateFeed, setFilter, resetFilters, refreshNews, refreshCurrent, updateFooter, handleSearch,
+    toggleSaveArticle, toggleWatchlist, toggleTheme, toggleMobileDrawer, toggleFilterBar, navigateFeed, setFilter, resetFilters, refreshNews, refreshCurrent, updateFooter, handleSearch,
     getFX: () => fx.data, refreshFX,
     renderPage: null, refreshPage: null,
   };
@@ -402,7 +395,7 @@
   [
     'escHtml', 'fetchJSON', 'formatEAT', 'formatCompact', 'renderGridCard', 'renderSkeleton', 'renderError',
     'showToast', 'toggleSaveArticle', 'toggleWatchlist', 'toggleTheme', 'toggleMobileDrawer', 'toggleFilterBar',
-    'openPricingModal', 'closePricingModal', 'refreshCurrent', 'refreshNews', 'navigateFeed', 'setFilter',
+    'refreshCurrent', 'refreshNews', 'navigateFeed', 'setFilter',
     'resetFilters', 'handleSearch', 'openArticle', 'openIssuer', 'toggleSaveArticle',
   ].forEach((name) => { window[name] = FC[name]; });
   window.computeXIRR = computeXIRR;
@@ -476,7 +469,6 @@
   });
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    closePricingModal();
     document.getElementById('mobile-drawer')?.classList.add('hidden');
     document.querySelector('[aria-controls="mobile-drawer"]')?.setAttribute('aria-expanded', 'false');
   });

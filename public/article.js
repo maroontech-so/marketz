@@ -5,6 +5,7 @@
   const safeUrl = FC.safeUrl;
   let article = null;
   let related = [];
+  let shareOpen = false;
 
   const text = value => String(value ?? '');
   const list = value => Array.isArray(value) ? value.map(text).map(item => item.trim()).filter(Boolean) : [];
@@ -183,6 +184,35 @@
     return { label, body: `<div class="article-body prose prose-lg dark:prose-invert max-w-none">${body}</div>`, note: rightsNote(title, message, links, tone, extra) };
   }
 
+  function setupOpenGraph(item) {
+    const url = safeUrl(location.href);
+    const image = item.imageUrl || '/logo.png';
+    const title = `${item.title} — FinCapita`;
+    const description = item.excerpt || `Kenya capital markets coverage from ${item.sourceName}.`;
+    const tags = [
+      ['property', 'og:title', title],
+      ['property', 'og:description', description],
+      ['property', 'og:url', url],
+      ['property', 'og:type', 'article'],
+      ['property', 'og:image', image],
+      ['property', 'og:image:alt', title],
+      ['property', 'og:site_name', 'FinCapita'],
+      ['name', 'twitter:card', 'summary_large_image'],
+      ['name', 'twitter:title', title],
+      ['name', 'twitter:description', description],
+      ['name', 'twitter:image', image],
+    ];
+    tags.forEach(([attr, name, content]) => {
+      if (!content) return;
+      let el = document.querySelector(`meta[${attr}="${name}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    });
+  }
   function findRelated(items) {
     const tickers = new Set(article.tickers.map(item => item.toUpperCase()));
     const institutions = new Set(article.institutions.map(item => item.toUpperCase()));
@@ -203,6 +233,36 @@
     return `<a href="${esc(safeUrl(FC.articleUrl(item.id)))}" class="group flex gap-3 rounded-xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] p-4 hover:border-[#FF4D1C] transition-colors">${item.imageUrl ? `<div class="w-20 sm:w-24 shrink-0">${imageFrame(item)}</div>` : ''}<div class="min-w-0 flex-1"><div class="text-[10px] text-zinc-500 dark:text-zinc-400">${esc(item.sourceName)} · ${esc(FC.timeAgo(item.publishedAt))}</div><h3 class="mt-1 text-sm font-semibold leading-snug group-hover:text-[#FF4D1C] line-clamp-2">${esc(item.title)}</h3><p class="mt-1.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 line-clamp-2">${esc(item.excerpt)}</p></div></a>`;
   }
 
+  function shareButtons(item) {
+    const url = encodeURIComponent(safeUrl(location.href) || location.href);
+    const title = encodeURIComponent(item.title);
+    const desc = encodeURIComponent(item.excerpt || `${item.sourceName} · FinCapita`);
+    const image = encodeURIComponent(item.imageUrl || '');
+    return [
+      { label: 'X / Twitter', href: `https://twitter.com/intent/tweet?text=${title}&url=${url}`, color: 'bg-zinc-900 text-white hover:bg-zinc-800' },
+      { label: 'WhatsApp', href: `https://wa.me/?text=${title}%20${url}`, color: 'bg-emerald-600 text-white hover:bg-emerald-700' },
+      { label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`, color: 'bg-blue-700 text-white hover:bg-blue-800' },
+      { label: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${url}`, color: 'bg-blue-600 text-white hover:bg-blue-700' },
+    ].map((s) => `<a href="${s.href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); FC.toggleShare()" class="flex items-center justify-between px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 transition-colors"><span>${esc(s.label)}</span><span class="text-xs opacity-60">→</span></a>`);
+  }
+  function toggleShare() {
+    shareOpen = !shareOpen;
+    const overlay = document.getElementById('share-overlay');
+    if (overlay) overlay.classList.toggle('hidden');
+    const btn = document.querySelector('button[onclick="FC.toggleShare()"]');
+    if (btn) btn.setAttribute('aria-expanded', String(shareOpen));
+  }
+  function copyLink() {
+    const url = safeUrl(location.href) || location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.querySelector('button[onclick="FC.copyLink()"]');
+      const original = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = 'Copied'; btn.classList.add('text-emerald-600', 'dark:text-emerald-400'); }
+      setTimeout(() => { if (btn) { btn.textContent = original; btn.classList.remove('text-emerald-600', 'dark:text-emerald-400'); } }, 1500);
+      toggleShare();
+    }).catch(() => toggleShare());
+  }
+
   function render() {
     if (!article) return;
     const rights = rightsView(article);
@@ -210,7 +270,7 @@
     root.innerHTML = `<div class="max-w-5xl mx-auto">
       <div class="mb-7 flex flex-wrap items-center justify-between gap-3">
         <a href="${esc(safeUrl('index.html'))}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#FF4D1C]"><span aria-hidden="true">←</span> Back to feed</a>
-        <div class="flex flex-wrap items-center gap-2">${originalLink(article)}<button type="button" data-save-article="${esc(article.id)}" aria-pressed="${saved ? 'true' : 'false'}" class="inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-bold ${saved ? 'border-[#FF4D1C] text-[#FF4D1C]' : 'border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-[#FF4D1C]'}"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"></path></svg>${saved ? 'Saved' : 'Save article'}</button></div>
+        <div class="flex flex-wrap items-center gap-2">${originalLink(article)}<button type="button" data-save-article="${esc(article.id)}" aria-pressed="${saved ? 'true' : 'false'}" class="inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-bold ${saved ? 'border-[#FF4D1C] text-[#FF4D1C]' : 'border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-[#FF4D1C]'}"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"></path></svg>${saved ? 'Saved' : 'Save article'}</button><button type="button" onclick="FC.toggleShare()" aria-expanded="${shareOpen ? 'true' : 'false'}" class="inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-bold border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-[#FF4D1C] hover:bg-[#F5F5F7] dark:hover:bg-zinc-800"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>Share</button></div>
       </div>
       <article>
         <header class="space-y-4">
@@ -223,6 +283,17 @@
         <div class="mt-8">${rights.body}${rights.note}</div>
       </article>
       ${related.length ? `<section class="mt-12 border-t border-[#E5E7EB] pt-7 dark:border-zinc-800"><h2 class="font-display text-xl font-bold tracking-tight">Related coverage <span class="font-mono text-sm font-normal text-zinc-500">(${related.length})</span></h2><div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">${related.map(relatedCard).join('')}</div></section>` : ''}
+      <div id="share-overlay" class="fixed inset-0 z-50 hidden ${shareOpen ? 'flex' : ''} items-center justify-center">
+        <div onclick="FC.toggleShare()" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md mx-auto p-4 sm:p-6 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] shadow-2xl">
+          <div class="flex items-center gap-2 mb-5"><div class="w-10 h-10 rounded-xl bg-[#FF4D1C] flex items-center justify-center"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg></div><h3 class="font-display font-bold text-lg">Share article</h3></div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-6">${esc(article.title)}</p>
+          <div class="grid grid-cols-2 gap-3">
+            ${shareButtons(article).join('')}
+          </div>
+          <div class="mt-5 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center"><button onclick="FC.toggleShare()" class="text-xs text-zinc-500 hover:text-[#111315] dark:hover:text-white">Cancel</button><button onclick="FC.copyLink()" class="text-xs font-bold text-[#FF4D1C] hover:underline">Copy link</button></div>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -251,6 +322,7 @@
       article = normalize(raw);
       if (!article.id) article.id = requestedId;
       document.title = `${article.title} — FinCapita`;
+      setupOpenGraph(article);
       related = findRelated(Array.isArray(news?.articles) ? news.articles : []);
     } catch (error) {
       article = null;
@@ -270,5 +342,7 @@
   window.addEventListener('fincapita:saved', () => { if (article) render(); });
   FC.renderPage = render;
   FC.refreshPage = load;
+  FC.toggleShare = toggleShare;
+  FC.copyLink = copyLink;
   load();
 })();

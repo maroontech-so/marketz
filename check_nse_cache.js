@@ -1,0 +1,11 @@
+require("dotenv").config();
+const Database = require("better-sqlite3");
+const path = require("path");
+const dbPath = path.join(__dirname, "fincapita.sqlite");
+const db = new Database(dbPath);
+const rows = db.prepare("SELECT key, cached_at, expires_at, retry_after, last_error FROM market_data_cache WHERE key = ?").all("nse");
+rows.forEach(r => console.log(r));
+const todayStart = new Date();
+todayStart.setHours(0,0,0,0);
+const reqs = db.prepare("SELECT COUNT(*) as count FROM market_data_requests WHERE key = ? AND timestamp >= ?").get("nse", todayStart.getTime());
+console.log("Requests today:", reqs?.count);

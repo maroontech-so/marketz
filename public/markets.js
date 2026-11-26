@@ -8,6 +8,21 @@
   };
   const charts = [];
   const num = (value) => value === null || value === undefined || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+  
+  // Skeleton templates for instant visual feedback
+  function renderMetricSkeleton() {
+    return `<div class="market-card metric-card p-5"><div class="h-4 w-1/3 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded mb-2"></div><div class="h-8 w-1/2 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded"></div><div class="h-3 w-3/4 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded mt-2"></div></div>`;
+  }
+  function renderCardSkeleton(title = 'Section') {
+    return `<div class="market-card p-5 sm:p-6"><div class="h-4 w-1/4 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded mb-2"></div><div class="h-6 w-1/3 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded mb-5"></div><div class="h-3 w-full bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded"></div><div class="h-3 w-2/3 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded mt-2"></div></div>`;
+  }
+  function renderTableSkeleton(cols = 5, rows = 6) {
+    const header = cols.map(() => '<th><div class="h-4 w-1/2 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded"></div></th>').join('');
+    const row = cols.map(() => '<td><div class="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded"></div></td>').join('');
+    const rowsHtml = Array(rows).fill(`<tr>${row}</tr>`).join('');
+    return `<div class="market-card overflow-hidden"><div class="p-4 border-b border-[#E5E7EB] dark:border-zinc-800"><div class="h-4 w-1/4 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded"></div></div><div class="market-scroll max-h-[620px] overflow-y-auto"><table class="data-table"><thead><tr>${header}</tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`;
+  }
+  
   function changePercent(quote, index = false) {
     const explicit = num(quote.changePct);
     if (explicit !== null) return explicit;
@@ -80,17 +95,34 @@
   function unavailableCard(title, text, href = '') {
     return `<div class="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-[#F5F5F7] dark:bg-zinc-900/60 p-6 sm:p-8 text-center"><div class="w-11 h-11 mx-auto rounded-xl bg-[#0B0B0C] dark:bg-zinc-800 text-white flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg></div><h3 class="font-display font-bold text-lg mt-4">${escHtml(title)}</h3><p class="text-xs sm:text-sm text-zinc-500 mt-2 max-w-xl mx-auto leading-relaxed">${escHtml(text)}</p>${href ? `<a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer" class="inline-flex mt-4 px-4 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold">Visit official source ↗</a>` : ''}</div>`;
   }
-  function renderRefreshWarning() {
-    if (!view.error || !view.payload) return '';
-    return `<div role="alert" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"><div><strong class="text-sm">Refresh failed — showing stale, last-good data.</strong><p class="mt-1 text-xs leading-relaxed opacity-90">Last successful fetch ${view.refreshedAt ? escHtml(formatEAT(view.refreshedAt)) : 'unknown'} · ${escHtml(view.error)}</p></div><button type="button" onclick="refreshMarkets(true)" class="self-start sm:self-auto shrink-0 rounded-lg border border-amber-400 px-3 py-1.5 text-xs font-bold">Retry refresh</button></div>`;
-  }
-  function renderHero() {
+  function renderPageHeader() {
     const nse = nseData();
+    const forex = forexData();
     const status = nse.available ? nse.status || 'provider' : nse.providerConfigured ? 'provider error' : 'not configured';
-    return `<section class="market-hero rounded-3xl overflow-hidden text-white p-6 sm:p-8 lg:p-10">
-      <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-7"><div class="max-w-3xl"><div class="flex flex-wrap items-center gap-2"><span class="text-[10px] font-mono uppercase tracking-[0.18em] text-[#FF6A3D]">Capital markets command centre</span><span class="status-pill"><span class="source-dot ${nse.available ? '' : 'warning'}"></span>NSE ${escHtml(status)}</span><span class="status-pill"><span class="source-dot ${forexData().available ? '' : 'offline'}"></span>CBK ${forexData().available ? 'official daily' : 'unavailable'}</span></div><h1 class="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-[-0.04em] mt-5 leading-[1.02]">Markets, with<br class="hidden sm:block"> the context intact.</h1><p class="text-zinc-400 text-sm sm:text-base mt-5 max-w-2xl leading-relaxed">NSE equities and index analytics when licensed data is available. Official CBK Forex, Treasury and macro series show observation dates separately from the page fetch time.</p></div><div class="xl:text-right"><div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Nairobi local time</div><div id="market-clock" class="font-mono text-xl mt-1">— EAT</div><div class="text-[11px] text-zinc-500 mt-2">Last successful fetch ${view.refreshedAt ? escHtml(formatEAT(view.refreshedAt)) : '—'}</div><button id="refresh-markets" onclick="refreshMarkets(true)" class="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white text-xs font-bold"><svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 0 0 5.1 6.1M4 16a8 8 0 0 0 14.9 1.9"/></svg>Refresh data</button></div></div>
-      <nav class="flex items-center gap-1 overflow-x-auto mt-8 pt-5 border-t border-white/10" aria-label="Markets sections">${[['overview','Overview'],['equities','Equities'],['fixed-income','Fixed income'],['forex','Forex'],['macro','Macro'],['news','Catalysts']].map(([id,label]) => `<a href="#${id}" class="px-3.5 py-2 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-white/10 whitespace-nowrap">${label}</a>`).join('')}</nav>
-    </section>`;
+    return `<header class="flex flex-col xl:flex-row xl:items-end justify-between gap-7 mb-10">
+      <div class="max-w-3xl">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <span class="text-[10px] font-mono uppercase tracking-[0.18em] text-[#FF4D1C]">Capital markets dashboard</span>
+          <span class="status-pill"><span class="source-dot ${nse.available ? '' : 'warning'}"></span>NSE ${escHtml(status)}</span>
+          <span class="status-pill"><span class="source-dot ${forex.available ? '' : 'offline'}"></span>CBK ${forex.available ? 'official daily' : 'unavailable'}</span>
+        </div>
+        <h1 class="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-[-0.04em] leading-[1.02]">Markets, with the context intact.</h1>
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base mt-4 max-w-2xl leading-relaxed">NSE equities and index analytics when licensed data is available. Official CBK Forex, Treasury and macro series show observation dates separately from the page fetch time.</p>
+      </div>
+      <div class="xl:text-right flex flex-col items-end gap-3">
+        <div class="text-right">
+          <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Nairobi local time</div>
+          <div id="market-clock" class="font-mono text-xl mt-1 text-[#111315] dark:text-white">— EAT</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="hidden xl:block text-right text-[11px] text-zinc-500">Last successful fetch ${view.refreshedAt ? escHtml(formatEAT(view.refreshedAt)) : '—'}</div>
+          <button id="refresh-markets" onclick="refreshMarkets(true)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF4D1C] hover:bg-[#E03D10] text-white text-xs font-bold shrink-0">
+            <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 0 0 5.1 6.1M4 16a8 8 0 0 0 14.9 1.9"/></svg>Refresh data
+          </button>
+        </div>
+      </div>
+    </header>
+    <nav class="flex items-center gap-1 overflow-x-auto mt-6 pt-5 border-t border-[#E5E7EB] dark:border-zinc-800" aria-label="Markets sections">${[['overview','Overview'],['equities','Equities'],['fixed-income','Fixed income'],['forex','Forex'],['macro','Macro'],['news','Catalysts']].map(([id,label]) => `<a href="#${id}" class="px-3.5 py-2 rounded-lg text-xs text-zinc-500 hover:text-[#111315] dark:hover:text-white hover:bg-[#F5F5F7] dark:hover:bg-zinc-800 whitespace-nowrap">${label}</a>`).join('')}</nav>`;
   }
   function renderOverview() {
     const nse = nseData();
@@ -100,10 +132,60 @@
     const usd = forexData().pairs?.find((pair) => pair.code === 'USD');
     const indices = Array.isArray(nse.indices) ? nse.indices : [];
     const equityStocks = stocks();
-    return `<section id="overview" class="space-y-5 scroll-mt-44"><div class="flex items-end justify-between gap-4"><div><span class="text-[10px] font-mono uppercase tracking-wider text-[#FF4D1C]">01 · Market pulse</span><h2 class="font-display font-extrabold text-2xl sm:text-3xl mt-1">The session at a glance</h2></div><span class="hidden sm:block text-[11px] text-zinc-500">Auto-refresh every 60 seconds</span></div>
-      <div class="grid grid-cols-2 ${usd ? 'xl:grid-cols-5' : 'xl:grid-cols-4'} gap-3 sm:gap-4">${renderMetric('NSE market capitalisation', num(summary.totalMarketCap ?? summary.marketCap) !== null ? 'KES ' + formatCompact(summary.totalMarketCap ?? summary.marketCap) : '—', nse.available ? 'Provider-reported market value' : 'Requires a licensed NSE quote feed')}${renderMetric('NSE turnover', num(summary.totalTurnover ?? summary.turnover) !== null ? 'KES ' + formatCompact(summary.totalTurnover ?? summary.turnover) : '—', nse.available ? 'Reported equity turnover' : 'No simulated turnover is shown')}${renderMetric('Central bank rate', num(cbr.rate) !== null ? formatNumber(cbr.rate,2) + '%' : '—', sourceLine(cbr, 'rate date'), 'text-[#FF4D1C]')}${renderMetric('12-month inflation', num(inflation.twelveMonth) !== null ? formatNumber(inflation.twelveMonth,2) + '%' : '—', inflation.month ? `${escHtml(inflation.month)} ${escHtml(inflation.year)} · ${sourceLine(inflation, 'observation month')}` : sourceLine(inflation, 'observation month'))}${usd ? renderMetric('USD / KES reference', formatNumber(usd.rate,2), sourceLine(forexData(), 'reference date') + ' · indicative daily rate') : ''}</div>
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">${indices.length ? indices.slice(0,6).map((index) => renderIndexCard(index)).join('') : `<div class="xl:col-span-3">${unavailableCard('NSE index feed is not connected', nse.reason || 'Configure a licensed market-data provider on the server to display index levels, breadth, equity prices, volume and turnover. No placeholder prices are presented as live.', 'https://www.nse.co.ke/')}</div>`}</div>
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5"><div class="market-card xl:col-span-2 overflow-hidden"><div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E7EB] dark:border-zinc-800"><div><div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Performance history</div><h3 class="font-display font-bold text-xl mt-1">${escHtml(view.historyIndex)} index trajectory</h3></div>${indices.length > 1 ? `<select onchange="setHistoryIndex(this.value)" class="px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs">${indices.map((index) => `<option value="${escHtml(index.code)}" ${view.historyIndex === index.code ? 'selected' : ''}>${escHtml(index.code)}</option>`).join('')}</select>` : ''}</div>${renderIndexHistory()}</div><div class="market-card p-5 sm:p-6"><div class="flex items-center justify-between gap-3"><div><div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Leaderboard</div><h3 class="font-display font-bold text-xl mt-1">Price movers</h3></div><div class="flex rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 p-0.5 text-[10px]"><button onclick="setMoverTab('gainers')" class="px-2.5 py-1.5 rounded-md ${view.moverTab === 'gainers' ? 'bg-white dark:bg-zinc-800 font-bold' : 'text-zinc-500'}">Gainers</button><button onclick="setMoverTab('losers')" class="px-2.5 py-1.5 rounded-md ${view.moverTab === 'losers' ? 'bg-white dark:bg-zinc-800 font-bold' : 'text-zinc-500'}">Losers</button></div></div><div id="mover-list" class="mt-5">${renderMovers()}</div><div class="mt-5 pt-4 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between text-xs"><span class="text-zinc-500">Market breadth</span><span class="font-mono font-bold">${breadthText()}</span></div></div></div>
+
+    const marketCap = num(summary.totalMarketCap);
+    const turnover = num(summary.totalTurnover);
+
+    return `<section id="overview" class="space-y-8 scroll-mt-44">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-[#FF4D1C]">01 · Market pulse</span>
+          <h2 class="font-display font-extrabold text-2xl sm:text-3xl mt-1">The session at a glance</h2>
+        </div>
+        <span class="hidden sm:block text-[11px] text-zinc-500">Auto-refresh every 60 seconds</span>
+      </div>
+
+      <div class="grid grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-4">
+        ${renderMetric('NSE market capitalisation', marketCap !== null ? 'KES ' + formatCompact(marketCap) : (nse.available ? '—' : 'Provider not configured'), nse.available ? (marketCap !== null ? 'Provider-reported market value' : 'No market cap data returned') : 'Configure a licensed NSE quote feed')}
+        ${renderMetric('NSE equity turnover', turnover !== null ? 'KES ' + formatCompact(turnover) : (nse.available ? '—' : 'Provider not configured'), nse.available ? (turnover !== null ? 'Reported equity turnover' : 'No turnover data returned') : 'No simulated turnover is shown')}
+        ${renderMetric('Central bank rate', num(cbr.rate) !== null ? formatNumber(cbr.rate, 2) + '%' : '—', sourceLine(cbr, 'rate date'), 'text-[#FF4D1C]')}
+        ${renderMetric('12-month inflation', num(inflation.twelveMonth) !== null ? formatNumber(inflation.twelveMonth, 2) + '%' : '—', inflation.month ? `${escHtml(inflation.month)} ${escHtml(inflation.year)} · ${sourceLine(inflation, 'observation month')}` : sourceLine(inflation, 'observation month'))}
+        ${usd ? renderMetric('USD / KES reference', formatNumber(usd.rate, 2), sourceLine(forexData(), 'reference date') + ' · indicative daily rate') : ''}
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        ${indices.length ? indices.slice(0, 6).map((index) => renderIndexCard(index)).join('') : `<div class="xl:col-span-3">${unavailableCard('NSE index feed is not connected', nse.reason || 'Configure a licensed market-data provider on the server to display index levels, breadth, equity prices, volume and turnover. No placeholder prices are presented as live.', 'https://www.nse.co.ke/')}</div>`}
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="market-card xl:col-span-2 overflow-hidden">
+          <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E7EB] dark:border-zinc-800">
+            <div>
+              <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Performance history</div>
+              <h3 class="font-display font-bold text-xl mt-1">${escHtml(view.historyIndex)} index trajectory</h3>
+            </div>
+            ${indices.length > 1 ? `<select onchange="setHistoryIndex(this.value)" class="px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs">${indices.map((index) => `<option value="${escHtml(index.code)}" ${view.historyIndex === index.code ? 'selected' : ''}>${escHtml(index.code)}</option>`).join('')}</select>` : ''}
+          </div>
+          ${renderIndexHistory()}
+        </div>
+        <div class="market-card p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Leaderboard</div>
+              <h3 class="font-display font-bold text-xl mt-1">Price movers</h3>
+            </div>
+            <div class="flex rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 p-0.5 text-[10px]">
+              <button onclick="setMoverTab('gainers')" class="px-2.5 py-1.5 rounded-md ${view.moverTab === 'gainers' ? 'bg-white dark:bg-zinc-800 font-bold' : 'text-zinc-500'}">Gainers</button>
+              <button onclick="setMoverTab('losers')" class="px-2.5 py-1.5 rounded-md ${view.moverTab === 'losers' ? 'bg-white dark:bg-zinc-800 font-bold' : 'text-zinc-500'}">Losers</button>
+            </div>
+          </div>
+          <div id="mover-list" class="mt-5">${renderMovers()}</div>
+          <div class="mt-5 pt-4 border-t border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between text-xs">
+            <span class="text-zinc-500">Market breadth</span>
+            <span class="font-mono font-bold">${breadthText()}</span>
+          </div>
+        </div>
+      </div>
     </section>`;
   }
   function renderIndexCard(index) {
@@ -171,7 +253,7 @@
     const equityStocks = stocks();
     const sectors = [...new Set(equityStocks.map((stock) => stock.sector).filter(Boolean))].sort();
     return `<section id="equities" class="space-y-5 scroll-mt-44"><div><span class="text-[10px] font-mono uppercase tracking-wider text-[#FF4D1C]">02 · Equity market</span><h2 class="font-display font-extrabold text-2xl sm:text-3xl mt-1">Quotes, activity & sector breadth</h2><p class="text-sm text-zinc-500 mt-2">Price, volume, turnover and valuation fields are displayed only when returned by the licensed provider.</p></div>
-      ${equityStocks.length ? `<div class="market-card overflow-hidden"><div class="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E5E7EB] dark:border-zinc-800"><div class="flex flex-col sm:flex-row gap-3 flex-1"><input type="search" value="${escHtml(view.stockQuery)}" oninput="marketStockSearch(this.value)" placeholder="Search ticker, company or sector…" class="w-full sm:max-w-sm px-3.5 py-2.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs"><select onchange="marketStockSector(this.value)" class="px-3.5 py-2.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs"><option value="all">All sectors</option>${sectors.map((sector) => `<option value="${escHtml(sector)}" ${view.stockSector === sector ? 'selected' : ''}>${escHtml(sector)}</option>`).join('')}</select></div><div class="flex items-center justify-between gap-3"><span id="stock-count" class="text-xs text-zinc-500">${filteredStocks().length} stocks</span><button onclick="exportStocks()" class="px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-semibold">Export CSV</button></div></div><div class="market-scroll max-h-[620px] overflow-y-auto"><table class="data-table"><thead><tr>${[['ticker','Ticker'],['name','Company'],['sector','Sector'],['price','Price'],['changePct','Change'],['previousClose','Prev. close'],['volume','Volume'],['turnover','Turnover'],['marketCap','Market cap']].map(([key,label]) => `<th><button onclick="marketStockSort('${key}')" class="inline-flex items-center gap-1 ${view.stockSort === key ? 'text-[#FF4D1C]' : ''}">${label}${view.stockSort === key ? '↓' : ''}</button></th>`).join('')}</tr></thead><tbody id="stock-rows">${renderStockRows()}</tbody></table></div></div>` : unavailableCard('Licensed equity quotes required', nseData().reason || 'NSE prices, quantities, turnover and market capitalisation are not available without a configured licensed market-data feed.', 'https://www.nse.co.ke/')}
+      ${equityStocks.length ? `<div class="market-card overflow-hidden"><div class="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E5E7EB] dark:border-zinc-800"><div class="flex flex-col sm:flex-row gap-3 flex-1"><input type="search" value="${escHtml(view.stockQuery)}" oninput="marketStockSearch(this.value)" placeholder="Search ticker, company or sector…" class="w-full sm:max-w-sm px-3.5 py-2.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs"><select onchange="marketStockSector(this.value)" class="px-3.5 py-2.5 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs"><option value="all">All sectors</option>${sectors.map((sector) => `<option value="${escHtml(sector)}" ${view.stockSector === sector ? 'selected' : ''}>${escHtml(sector)}</option>`).join('')}</select></div><div class="flex items-center justify-between gap-3"><span id="stock-count" class="text-xs text-zinc-500">${filteredStocks().length} stocks</span><button onclick="exportStocks()" class="px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-semibold">Export CSV</button></div></div><div class="market-scroll"><table class="data-table"><thead><tr>${[['ticker','Ticker'],['name','Company'],['sector','Sector'],['price','Price'],['changePct','Change'],['previousClose','Prev. close'],['volume','Volume'],['turnover','Turnover'],['marketCap','Market cap']].map(([key,label]) => `<th><button onclick="marketStockSort('${key}')" class="inline-flex items-center gap-1 ${view.stockSort === key ? 'text-[#FF4D1C]' : ''}">${label}${view.stockSort === key ? '↓' : ''}</button></th>`).join('')}</tr></thead><tbody id="stock-rows">${renderStockRows()}</tbody></table></div></div>` : unavailableCard('Licensed equity quotes required', nseData().reason || 'NSE prices, quantities, turnover and market capitalisation are not available without a configured licensed market-data feed.', 'https://www.nse.co.ke/')}
       <div class="market-card p-5 sm:p-6"><div class="flex flex-wrap items-end justify-between gap-3"><div><div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Sector map</div><h3 class="font-display font-bold text-xl mt-1">Price performance by sector</h3></div><span class="text-[11px] text-zinc-500">Simple mean of returned stock changes</span></div><div id="sector-grid" class="mt-5">${renderSectors()}</div></div>
     </section>`;
   }
@@ -248,7 +330,7 @@
     charts.splice(0).forEach((chart) => chart.destroy());
     if (view.loading && !view.payload) { root.innerHTML = renderSkeleton(); return; }
     if (view.error && !view.payload) { root.innerHTML = renderError(view.error); return; }
-    root.innerHTML = `<div class="space-y-10 sm:space-y-12">${renderRefreshWarning()}${renderHero()}${renderOverview()}${renderEquities()}${renderFixedIncome()}${renderForex()}${renderMacro()}${renderNews()}${renderSources()}</div>`;
+    root.innerHTML = `<div class="space-y-10 sm:space-y-12">${renderPageHeader()}${renderOverview()}${renderEquities()}${renderFixedIncome()}${renderForex()}${renderMacro()}${renderNews()}${renderSources()}</div>`;
     initCharts();
     updateClock();
     convertFX();
