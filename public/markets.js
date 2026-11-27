@@ -396,9 +396,12 @@
       loadMarketNews();
       if (manual) FC.showToast('Market data refreshed');
     } catch (error) {
-      view.error = error.message;
+      view.error = error?.name === 'AbortError'
+        ? 'The market data request timed out after 25 seconds. Please try again.'
+        : (error?.message || 'Market data could not be loaded.');
+      view.loading = false;
       render();
-      if (manual) FC.showToast(`Refresh failed: ${error.message}`);
+      if (manual) FC.showToast(`Refresh failed: ${view.error}`);
     } finally {
       view.loading = false;
       view.refreshing = false;
