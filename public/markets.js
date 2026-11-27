@@ -375,10 +375,17 @@
   async function refreshMarkets(manual = false) {
     if (view.refreshing) return;
     view.refreshing = true;
+    view.loading = !view.payload;
     document.getElementById('refresh-icon')?.classList.add('spinning');
     try {
       const firstPayload = !view.payload;
-      view.payload = await fetchJSON('/api/markets');
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 25000);
+      try {
+        view.payload = await fetchJSON('/api/markets', { cache: 'no-store', signal: controller.signal });
+      } finally {
+        window.clearTimeout(timeout);
+      }
       if (firstPayload && view.payload?.nse?.indices?.[0]?.code && !view.payload.nse.history?.[view.historyIndex]) {
         view.historyIndex = view.payload.nse.indices[0].code;
       }
@@ -393,6 +400,7 @@
       render();
       if (manual) FC.showToast(`Refresh failed: ${error.message}`);
     } finally {
+      view.loading = false;
       view.refreshing = false;
       document.getElementById('refresh-icon')?.classList.remove('spinning');
     }
@@ -436,5 +444,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshMarkets(); });
   setInterval(() => { if (!document.hidden) refreshMarkets(); }, REFRESH_MS);
   setInterval(updateClock,1000);
+  // Paint the loading state before the first network request starts.
+  render();
   refreshMarkets();
 })();
