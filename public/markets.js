@@ -154,21 +154,17 @@
       </div>
 
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        ${indices.length ? indices.slice(0, 6).map((index) => renderIndexCard(index)).join('') : `<div class="xl:col-span-3">${unavailableCard('NSE index feed is not connected', nse.reason || 'Configure a licensed market-data provider on the server to display index levels, breadth, equity prices, volume and turnover. No placeholder prices are presented as live.', 'https://www.nse.co.ke/')}</div>`}
-      </div>
-
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div class="market-card xl:col-span-2 overflow-hidden">
+        ${historyPoints(view.historyIndex).length ? `<div class="market-card xl:col-span-2 overflow-hidden">
           <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E7EB] dark:border-zinc-800">
             <div>
               <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Performance history</div>
               <h3 class="font-display font-bold text-xl mt-1">${escHtml(view.historyIndex)} index trajectory</h3>
             </div>
-            ${indices.length > 1 ? `<select onchange="setHistoryIndex(this.value)" class="px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs">${indices.map((index) => `<option value="${escHtml(index.code)}" ${view.historyIndex === index.code ? 'selected' : ''}>${escHtml(index.code)}</option>`).join('')}</select>` : ''}
+            ${Object.keys(nse.history || {}).filter((code) => historyPoints(code).length).length > 1 ? `<select onchange="setHistoryIndex(this.value)" class="px-3 py-2 rounded-lg bg-[#F5F5F7] dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs">${Object.keys(nse.history || {}).filter((code) => historyPoints(code).length).map((code) => `<option value="${escHtml(code)}" ${view.historyIndex === code ? 'selected' : ''}>${escHtml(code)}</option>`).join('')}</select>` : ''}
           </div>
           ${renderIndexHistory()}
-        </div>
-        <div class="market-card p-5 sm:p-6">
+        </div>` : ''}
+        <div class="market-card p-5 sm:p-6 ${historyPoints(view.historyIndex).length ? '' : 'xl:col-span-3'}">
           <div class="flex items-center justify-between gap-3">
             <div>
               <div class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Leaderboard</div>
@@ -386,8 +382,15 @@
       } finally {
         window.clearTimeout(timeout);
       }
-      if (firstPayload && view.payload?.nse?.indices?.[0]?.code && !view.payload.nse.history?.[view.historyIndex]) {
-        view.historyIndex = view.payload.nse.indices[0].code;
+      if (firstPayload) {
+        const availableHistory = Object.keys(view.payload?.nse?.history || {}).filter((code) =>
+          Array.isArray(view.payload.nse.history[code]) && view.payload.nse.history[code].length
+        );
+        if (availableHistory.length && !availableHistory.includes(view.historyIndex)) {
+          view.historyIndex = availableHistory[0];
+        } else if (!availableHistory.length && view.payload?.nse?.indices?.[0]?.code) {
+          view.historyIndex = view.payload.nse.indices[0].code;
+        }
       }
       view.error = null;
       view.refreshedAt = lastSuccessfulFetch(view.payload);
