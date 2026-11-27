@@ -52,15 +52,22 @@
     const latest = linked[0];
     const logo = logoFor(issuer);
     const backdrop = logo
-      ? `style="background-image: ${fallbackColor(issuer)}, linear-gradient(to bottom, rgba(11,11,12,0.35), rgba(11,11,12,0.55)), url('${escHtml(logo)}'); background-size: cover; background-position: center;"`
+      ? `style="background-image: url('${escHtml(logo)}'), linear-gradient(to bottom, rgba(11,11,12,0.35), rgba(11,11,12,0.55)), ${fallbackColor(issuer)}; background-size: cover; background-position: center;"`
       : `style="background-image: ${fallbackColor(issuer)};"`;
     return `
-      <article class="group relative p-5 rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] hover:border-[#FF4D1C]/50 hover:shadow-xl transition-all flex flex-col" ${backdrop}>
+      <article class="group relative rounded-2xl border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#12141A] hover:border-[#FF4D1C]/50 hover:shadow-xl transition-all overflow-hidden" ${backdrop}>
         <div class="absolute inset-0 bg-black/40 dark:bg-black/60 rounded-2xl transition-opacity group-hover:bg-black/20 dark:group-hover:bg-black/40 pointer-events-none"></div>
-        <div class="relative z-10 flex flex-col">
-          <div class="flex items-start justify-between gap-3 mb-4"><a href="${issuerUrl(issuer.ticker)}" class="px-2.5 py-1 rounded-md bg-white/90 dark:bg-zinc-900/90 text-white font-mono text-xs font-bold backdrop-blur-sm">NSE:${issuer.ticker}</a><button data-follow="${issuer.ticker}" class="px-2.5 py-1 rounded-md text-xs font-semibold border ${followed ? 'bg-[#FF4D1C] text-white border-[#FF4D1C]' : 'border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 backdrop-blur-sm'}">${followed ? 'Following' : '+ Follow'}</button></div>
-          <a href="${issuerUrl(issuer.ticker)}"><h2 class="font-display font-bold text-lg sm:text-xl mt-2 text-white group-hover:text-[#FF4D1C]">${escHtml(issuer.name)}</h2><div class="text-xs text-zinc-200 mt-1 backdrop-blur-sm">${escHtml(issuer.sector)}</div></a>
-          <div class="mt-auto pt-4 border-t border-white/10 flex items-center justify-between text-xs"><span class="text-zinc-400">Linked coverage</span><span class="font-mono font-bold text-zinc-200">${linked.length} ${linked.length === 1 ? 'story' : 'stories'}</span></div>${latest ? `<a href="${FC.articleUrl(latest.id)}" class="mt-3 text-xs text-zinc-300 dark:text-zinc-400 line-clamp-2 hover:text-[#FF4D1C]">${escHtml(latest.title)}</a>` : '<p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">No recent linked coverage.</p>'}</div>
+        <div class="relative z-10 p-5">
+          <table class="w-full" role="presentation">
+            <tr>
+              <td class="w-1/3 align-top"><a href="${issuerUrl(issuer.ticker)}" class="px-2.5 py-1 rounded-md bg-white/90 dark:bg-zinc-900/90 text-white font-mono text-xs font-bold backdrop-blur-sm">NSE:${issuer.ticker}</a></td>
+              <td class="w-1/3 align-middle text-center"><a href="${issuerUrl(issuer.ticker)}"><h2 class="font-display font-bold text-lg sm:text-xl mt-2 text-white group-hover:text-[#FF4D1C]">${escHtml(issuer.name)}</h2><div class="text-xs text-zinc-200 mt-1 backdrop-blur-sm">${escHtml(issuer.sector)}</div></a></td>
+              <td class="w-1/3 align-top text-right"><button data-follow="${issuer.ticker}" class="px-2.5 py-1 rounded-md text-xs font-semibold border ${followed ? 'bg-[#FF4D1C] text-white border-[#FF4D1C]' : 'border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 backdrop-blur-sm'}">${followed ? 'Following' : '+ Follow'}</button></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="pt-4 border-t border-white/10"><div class="flex items-center justify-between text-xs"><span class="text-zinc-400">Linked coverage</span><span class="font-mono font-bold text-zinc-200">${linked.length} ${linked.length === 1 ? 'story' : 'stories'}</span></div>${latest ? `<a href="${FC.articleUrl(latest.id)}" class="mt-3 block text-xs text-zinc-300 dark:text-zinc-400 line-clamp-2 hover:text-[#FF4D1C]">${escHtml(latest.title)}</a>` : '<p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">No recent linked coverage.</p>'}</td>
+            </tr>
+          </table>
         </div>
       </article>
     `;
